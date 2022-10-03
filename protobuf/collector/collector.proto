@@ -21,6 +21,6 @@ message ChatterList {
 }
 
 message ChatterResponse {
-    int32 amount = 1;
+    int32 total = 1;
     ChatterList chatters = 2;
 }

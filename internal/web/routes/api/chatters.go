@@ -112,7 +112,7 @@ func (a *cRoute) Handler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	a.Ctx.ApiOK(w, r, http.StatusOK, twitch.Chatters{
-		Amount: int(c.Amount),
+		Amount: int(c.GetTotal()),
 		Chatters: c.Chatters,
 	})
 }
