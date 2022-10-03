@@ -9,6 +9,7 @@
     "username": "",
     "password": "",
     "address": "",
+    "srv": false,
     "db": ""
   },
   "grpc": {

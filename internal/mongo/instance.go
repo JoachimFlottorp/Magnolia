@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 
 	"github.com/JoachimFlottorp/yeahapi/internal/config"
@@ -29,13 +28,28 @@ type mongoInst struct {
 	db     *mongo.Database
 }
 
+func createUrl(cfg *config.Config) string {
+	uri := "mongodb"
+	if cfg.Mongo.SRV {
+		uri += "+srv"
+	}
+	uri += "://"
+	if cfg.Mongo.Username != "" {
+		uri += url.QueryEscape(cfg.Mongo.Username)
+		if cfg.Mongo.Password != "" {
+			uri += ":" + url.QueryEscape(cfg.Mongo.Password)
+		}
+		uri += "@"
+	}
+	uri += cfg.Mongo.Address
+	if cfg.Mongo.DB != "" {
+		uri += "/" + cfg.Mongo.DB
+	}
+	return uri
+}
+
 func New(ctx context.Context, cfg *config.Config) (Instance, error) {
-	uri := fmt.Sprintf(
-		"mongodb+srv://%s:%s@%s", 
-		url.QueryEscape(cfg.Mongo.Username), 
-		url.QueryEscape(cfg.Mongo.Password), 
-		cfg.Mongo.Address,
-	)
+	uri := createUrl(cfg)
 	
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
