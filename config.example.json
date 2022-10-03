@@ -1,0 +1,20 @@
+{
+  "redis": {
+    "username": "",
+    "password": "",
+    "database": 0,
+    "address": ""
+  },
+  "mongo": {
+    "username": "",
+    "password": "",
+    "address": "",
+    "db": ""
+  },
+  "grpc": {
+    "address": ""
+  },
+  "http": {
+    "port": 0
+  }
+}

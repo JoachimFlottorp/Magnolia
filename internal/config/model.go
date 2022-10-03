@@ -1,0 +1,25 @@
+package config
+
+type Config struct {
+	Redis struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Database int    `json:"database"`
+		Address  string `json:"address"`
+	} `json:"redis"`
+
+	Mongo struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Address  string `json:"address"`
+		DB       string `json:"db"`
+	}
+
+	Grpc struct {
+		Address string `json:"address"`
+	} `json:"grpc"`
+
+	Http struct {
+		Port int `json:"port"`
+	} `json:"http"`
+}
