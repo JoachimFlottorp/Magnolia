@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option go_package = "github.com/JoachimFlottorp/yeahapi/protobuf/collector";
+
+package collector;
+
+service Chatters {
+    rpc GetChatters (ChatterRequest) returns (ChatterResponse) {}
+}
+
+message ChatterRequest {
+    string login = 1;
+}
+
+message ChatterList {
+    repeated string broadcaster = 1;
+    repeated string moderators = 2;
+    repeated string vips = 3;
+    repeated string staff = 4;
+    repeated string viewers = 5;
+}
+
+message ChatterResponse {
+    int32 amount = 1;
+    ChatterList chatters = 2;
+}
