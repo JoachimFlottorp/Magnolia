@@ -1,3 +1,13 @@
+//		Version: 0.0.1
+//
+//		Consumes:
+//		- application/json
+//
+//		Produces:
+//		- application/json
+//
+// swagger:meta
+
 package web
 
 import (
@@ -76,9 +86,11 @@ func New(gCtx ctx.Context) error {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write(res)
 			return
-		}
-
-		http.Redirect(w, r, "/", http.StatusFound)
+		} 
+		
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("404 - Not found"))
+		return
 	})
 	
 	go func() {

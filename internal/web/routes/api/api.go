@@ -28,5 +28,8 @@ func (a *Route) Configure() router.RouteConfig {
 	}
 }
 
-// TODO Some swagger thing
-func (a *Route) Handler(w http.ResponseWriter, r *http.Request){}
+func (a *Route) Handler(w http.ResponseWriter, r *http.Request) {
+	m := "This is the API Root. Open the API Documentation located at /docs for more information"
+
+	a.Ctx.ApiOK(w, r, http.StatusOK, m)
+}
