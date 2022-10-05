@@ -29,7 +29,7 @@ func (a *Route) Configure() router.RouteConfig {
 }
 
 func (a *Route) Handler(w http.ResponseWriter, r *http.Request) {
-	m := "This is the API Root. Open the API Documentation located at /docs for more information"
+	m := "This is the API Root. Open the API Documentation located at / for more information"
 
 	a.Ctx.ApiOK(w, r, http.StatusOK, m)
 }
