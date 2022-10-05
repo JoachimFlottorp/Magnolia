@@ -2,14 +2,15 @@ package twitch
 
 import "github.com/JoachimFlottorp/yeahapi/protobuf/collector"
 
+// swagger:model
 type Chatters struct {
-	Amount   int   `json:"total"`
+	Total   int   `json:"total"`
 	Chatters *collector.ChatterList `json:"chatters"`
 }
 
 func ChattersDefault() Chatters {
 	return Chatters{
-		Amount: 0,
+		Total: 0,
 		Chatters: &collector.ChatterList{
 			Broadcaster: []string{},
 			Vips:        []string{},

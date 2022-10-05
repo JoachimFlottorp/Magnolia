@@ -19,3 +19,7 @@ proto:
 
 docs:
 	swagger generate spec -m -o ./web/public/swagger.json
+
+compose:
+	docker build -f Dockerfile.shared -t jf/yeahapi.deps .
+	docker compose up

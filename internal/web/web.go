@@ -1,10 +1,10 @@
 //		Version: 0.0.1
 //
 //		Consumes:
-//		- application/json
+//		  - application/json
 //
 //		Produces:
-//		- application/json
+//		  - application/json
 //
 // swagger:meta
 
@@ -43,7 +43,7 @@ type Server struct {
 
 func New(gCtx ctx.Context) error {
 	port := gCtx.Config().Http.Port
-	addr := fmt.Sprintf("%s:%d", "localhost", port)
+	addr := fmt.Sprintf("%s:%d", "0.0.0.0", port)
 
 	s := Server{}
 
@@ -97,6 +97,16 @@ func New(gCtx ctx.Context) error {
 		<-gCtx.Done()
 
 		_ = server.Shutdown(gCtx)
+	}()
+
+	go func() {
+		time.Sleep(1 * time.Second)
+		select {
+		case <-gCtx.Done():
+			return
+		default:
+			zap.S().Infof("Listening on %s", addr)
+		}
 	}()
 
 	return server.Serve(s.listener)

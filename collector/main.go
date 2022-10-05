@@ -139,7 +139,7 @@ func (s *server) GetChatters(ctx context.Context, in *collector.ChatterRequest) 
 		return nil, err
 	}
 
-	amount 		:= channel.Channel.Chatters.Count
+	total 		:= channel.Channel.Chatters.Count
 	chatters 	:= collector.ChatterList{}
 
 	normalizeUsers := func (users []struct{ Login string `json:"login"` }) []string {
@@ -159,7 +159,7 @@ func (s *server) GetChatters(ctx context.Context, in *collector.ChatterRequest) 
 	chatters.Staff 			= normalizeUsers(channel.Channel.Chatters.Staff)
 	
 	return &collector.ChatterResponse{
-		Amount: int32(amount),
+		Total: int32(total),
 		Chatters: &chatters,
 	}, nil
 }
@@ -189,7 +189,7 @@ func main() {
 		zap.S().Fatalw("Failed to decode config file", "error", err)
 	}
 
-	port := "localhost:50051"
+	port := "0.0.0.0:50051"
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		zap.S().Fatalf("failed to listen: %v", err)

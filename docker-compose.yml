@@ -1,0 +1,48 @@
+version: '3.6'
+
+## Access redis and mongo running on the host
+## by specifying the address as host.docker.internal
+# extra_hosts:
+# - "host.docker.internal:host-gateway"
+
+services:
+  server:
+    image: jf/yeahapi.server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "yeahapi-server"
+    ports:
+      - "3004:3004"
+    networks:
+      - "yeahapi"
+    depends_on:
+      - "collector"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  collector:
+    image: jf/yeahapi.collector
+    build:
+      context: .
+      dockerfile: ./collector/Dockerfile
+    env_file:
+      - .env
+    container_name: "yeahapi-collector"
+    ports:
+      - 50051:50051
+    networks:
+      - "yeahapi"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  yeahapi:
+    name: yeahapi
+    external: true
