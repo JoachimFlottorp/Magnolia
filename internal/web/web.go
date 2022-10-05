@@ -1,10 +1,10 @@
 //		Version: 0.0.1
 //
 //		Consumes:
-//		- application/json
+//		  - application/json
 //
 //		Produces:
-//		- application/json
+//		  - application/json
 //
 // swagger:meta
 
