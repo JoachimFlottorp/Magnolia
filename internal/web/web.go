@@ -99,6 +99,16 @@ func New(gCtx ctx.Context) error {
 		_ = server.Shutdown(gCtx)
 	}()
 
+	go func() {
+		time.Sleep(1 * time.Second)
+		select {
+		case <-gCtx.Done():
+			return
+		default:
+			zap.S().Infof("Listening on %s", addr)
+		}
+	}()
+
 	return server.Serve(s.listener)
 }
 

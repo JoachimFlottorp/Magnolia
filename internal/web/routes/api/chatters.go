@@ -17,11 +17,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// swagger:model
-type chattersResponse struct {
-	Data 		*twitch.Chatters 	`json:"data"`
-}
-
 // swagger:parameters chattersGet
 type chattersGetParams struct {
 	// The login of the channel
@@ -54,7 +49,7 @@ func (a *cRoute) Configure() router.RouteConfig {
 // 	Get the chatters of a channel
 //
 // 			Responses:
-// 				200: chattersResponse
+// 				200: Chatters
 // 				400: apiFail
 // 				500: apiFail
 //
@@ -112,7 +107,7 @@ func (a *cRoute) Handler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	a.Ctx.ApiOK(w, r, http.StatusOK, twitch.Chatters{
-		Amount: int(c.GetTotal()),
+		Total: int(c.GetTotal()),
 		Chatters: c.Chatters,
 	})
 }
