@@ -16,8 +16,6 @@ services:
       - "3004:3004"
     networks:
       - "yeahapi"
-    depends_on:
-      - "collector"
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json

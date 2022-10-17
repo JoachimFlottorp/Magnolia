@@ -17,7 +17,6 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates libc6-compat make
 
 COPY --from=builder /app/server /app/server
-COPY --from=deps /app/web /app/web
 COPY --from=swag /app/web /app/web
 
 RUN chmod +x /app/server
