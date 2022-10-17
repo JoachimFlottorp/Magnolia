@@ -1,0 +1,9 @@
+FROM golang:1.19.1-alpine3.16 as proto
+RUN apk add --no-cache make protobuf
+WORKDIR /app
+COPY . .
+RUN make proto
+
+FROM alpine:3.8
+WORKDIR /app
+COPY --from=proto /app/protobuf /app/protobuf

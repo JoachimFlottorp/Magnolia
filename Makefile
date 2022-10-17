@@ -12,7 +12,13 @@ build:
 docs:
 	swagger generate spec -m -o ./web/public/swagger.json
 
+proto:
+	export PYTHONPATH
+	cd protobuf; python3 generate.py
+
 compose:
+	docker build -f Dockerfile.shared -t jf/yeahapi.deps .
+	docker compose build
 	docker compose up
 
 test:
