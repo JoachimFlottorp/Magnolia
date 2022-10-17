@@ -1,9 +1,0 @@
-FROM quay.io/goswagger/swagger:latest as swag
-WORKDIR /app
-COPY . .
-RUN make docs
-
-FROM alpine:3.8
-WORKDIR /app
-COPY --from=swag /app/web /app/web
-COPY --from=proto /app/protobuf /app/protobuf

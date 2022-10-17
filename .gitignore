@@ -15,3 +15,6 @@
 # vendor/
 
 web/public/swagger.json
+config.json
+.vscode
+bin
