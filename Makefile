@@ -15,3 +15,10 @@ docs:
 compose:
 	docker build -f Dockerfile.shared -t jf/yeahapi.deps .
 	docker compose up
+
+test:
+	go test -v ./...
+
+coverage:
+	go test -race -v -count=1 -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out

@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 
+	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
 	"github.com/gorilla/mux"
 )
 
@@ -16,5 +17,5 @@ type RouteConfig struct {
 
 type Route interface {
 	Configure() RouteConfig
-	Handler(http.ResponseWriter, *http.Request)
+	Handler(http.ResponseWriter, *http.Request) response.RouterResponse
 }

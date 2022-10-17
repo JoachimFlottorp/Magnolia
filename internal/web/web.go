@@ -19,6 +19,8 @@ import (
 	"time"
 
 	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
+	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
+	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
 	"github.com/JoachimFlottorp/yeahapi/internal/web/router"
 	"github.com/JoachimFlottorp/yeahapi/internal/web/routes/api"
 	"github.com/google/uuid"
@@ -26,6 +28,8 @@ import (
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
+
+type HandlerFunc func(w http.ResponseWriter, r *http.Request) response.RouterResponse
 
 type l struct {
 	logger *zap.SugaredLogger
@@ -37,15 +41,18 @@ func (log *l) Write(p []byte) (int, error) {
 }
 
 type Server struct {
-	listener net.Listener
-	router *mux.Router
+	gCtx 		ctx.Context
+	listener 	net.Listener
+	router 		*mux.Router
 }
 
 func New(gCtx ctx.Context) error {
 	port := gCtx.Config().Http.Port
 	addr := fmt.Sprintf("%s:%d", "0.0.0.0", port)
 
-	s := Server{}
+	s := Server{
+		gCtx: gCtx,
+	}
 
 	var err error
 	s.listener, err = net.Listen("tcp", addr)
@@ -75,11 +82,11 @@ func New(gCtx ctx.Context) error {
 
 	s.router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path[:4] == "/api" {
-			res, _ := json.Marshal(&router.ApiFail{
+			res, _ := json.Marshal(&response.ApiResponse{
 				Success: false,
 				RequestID: uuid.New(),
 				Timestamp: time.Now(),
-				Error: "Not found",
+				Error: http.StatusText(http.StatusNotFound),
 			})
 
 			w.Header().Set("Content-Type", "application/json")
@@ -90,7 +97,6 @@ func New(gCtx ctx.Context) error {
 		
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("404 - Not found"))
-		return
 	})
 	
 	go func() {
@@ -122,8 +128,8 @@ func (s *Server) setupRoutes(r router.Route, parent *mux.Router) {
 		StrictSlash(false)
 
 	// Allow endpoint without trailing slash
-	route.HandleFunc("", r.Handler)
-	route.HandleFunc("/", r.Handler)
+	route.HandleFunc("", s.wrapRouterHandler(r.Handler))
+	route.HandleFunc("/", s.wrapRouterHandler(r.Handler))
 
 	zap.S().
 		With("route", routeConfig.URI,).
@@ -135,5 +141,70 @@ func (s *Server) setupRoutes(r router.Route, parent *mux.Router) {
 
 	for _, middleware := range routeConfig.Middleware {
 		route.Use(middleware)
+	}
+}
+
+func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		
+		res := fn(w, r)
+		u := uuid.New()
+		t := time.Now()
+
+		for k, v := range res.Headers {
+			w.Header().Set(k, v)
+		}
+
+		apiRes := response.ApiResponse {
+			RequestID: u,
+			Timestamp: t,
+		}
+
+		if res.Error != nil {
+			apiRes.Error = res.Error.Error()
+			apiRes.Success = false
+		} else {
+			apiRes.Success = true
+			apiRes.Data = res.Body
+		}
+		
+		go func() {
+			log := mongo.ApiLog {
+				ID: u.String(),
+				Timestamp: t,
+				Method: r.Method,
+				Path: r.URL.Path,
+				Status: res.StatusCode,
+				IP: fmt.Sprintf("%s (%s)", r.Header.Get("X-Forwarded-For"), r.RemoteAddr),
+				UserAgent: r.UserAgent(),
+			}
+
+			if !apiRes.Success {
+				log.Error = apiRes.Error
+			}
+	
+			s.gCtx.Inst().Mongo.Collection(mongo.CollectionAPILog).InsertOne(s.gCtx, log)
+		}()
+		
+		j, err := json.MarshalIndent(apiRes, "", "  ")
+
+		if err != nil {
+			zap.S().Errorw("Failed to marshal response", "error", err)
+			
+			j, _ := json.MarshalIndent(&response.ApiResponse{
+				Success: false,
+				RequestID: uuid.New(),
+				Timestamp: time.Now(),
+				Error: "Internal server error",
+			}, "", "  ")
+			
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write(j)
+			return
+		}
+
+		w.WriteHeader(res.StatusCode)
+		w.Write(j)
 	}
 }

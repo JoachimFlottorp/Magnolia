@@ -2,24 +2,16 @@ package ctx
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/JoachimFlottorp/yeahapi/internal/config"
 	"github.com/JoachimFlottorp/yeahapi/internal/instance"
-	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/router"
-
-	"github.com/google/uuid"
 )
 
 type Context interface {
 	context.Context
 	Config() *config.Config
 	Inst() *instance.InstanceList
-	ApiOK(http.ResponseWriter, *http.Request, int, interface{})
-	ApiErr(http.ResponseWriter, *http.Request, int, error)
 }
 
 type gCtx struct {
@@ -92,61 +84,4 @@ func WithTimeout(ctx Context, timeout time.Duration) (Context, context.CancelFun
 		config:  cfg,
 		inst:    inst,
 	}, cancel
-}
-
-func (g *gCtx) ApiOK(w http.ResponseWriter, r *http.Request, statusCode int, data interface{}) {
-	u := uuid.New()
-	t := time.Now()
-
-	res := router.ApiOkay{
-		Success: true,
-		RequestID: u,
-		Timestamp: t,
-		Data: data,
-	}
-
-	go func() {
-		s := mongo.ApiLog {
-			ID: u.String(),
-			Timestamp: t,
-			Method: r.Method,
-			Path: r.URL.Path,
-			Status: statusCode,
-			IP: fmt.Sprintf("%s (%s)", r.Header.Get("X-Forwarded-For"), r.RemoteAddr),
-			UserAgent: r.UserAgent(),
-		}
-
-		g.Inst().Mongo.Collection(mongo.CollectionAPILog).InsertOne(g, s)
-	}()
-	
-	router.Send(w, statusCode, res)
-}
-
-func (g *gCtx) ApiErr(w http.ResponseWriter, r *http.Request, statusCode int, err error) {
-	u := uuid.New()
-	t := time.Now()
-
-	res := router.ApiFail{
-		Success: false,
-		RequestID: u,
-		Timestamp: t,
-		Error: err.Error(),
-	}
-	
-	go func() {
-		s := mongo.ApiLog {
-			ID: u.String(),
-			Timestamp: t,
-			Method: r.Method,
-			Path: r.URL.Path,
-			Status: statusCode,
-			IP: fmt.Sprintf("%s (%s)", r.Header.Get("X-Forwarded-For"), r.RemoteAddr),
-			UserAgent: r.UserAgent(),
-			Error: err.Error(),
-		}
-
-		g.Inst().Mongo.Collection(mongo.CollectionAPILog).InsertOne(g, s)
-	}()
-	
-	router.Send(w, statusCode, res)
 }

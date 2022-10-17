@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
+	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
 	"github.com/JoachimFlottorp/yeahapi/internal/web/router"
 
 	"github.com/gorilla/mux"
@@ -26,8 +27,8 @@ func (a *Route) Configure() router.RouteConfig {
 	}
 }
 
-func (a *Route) Handler(w http.ResponseWriter, r *http.Request) {
-	m := "This is the API Root. Open the API Documentation located at / for more information"
-
-	a.Ctx.ApiOK(w, r, http.StatusOK, m)
+func (a *Route) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
+	return response.OkResponse().
+		SetBody("This is the API Root. Open the API Documentation located at / for more information").
+		Build()
 }
