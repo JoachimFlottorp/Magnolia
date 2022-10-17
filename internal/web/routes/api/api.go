@@ -21,9 +21,7 @@ func (a *Route) Configure() router.RouteConfig {
 	return router.RouteConfig{
 		URI: "/api",
 		Method: []string{http.MethodGet},
-		Children: []router.Route{
-			newChatters(a.Ctx),
-		},
+		Children: []router.Route{},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }

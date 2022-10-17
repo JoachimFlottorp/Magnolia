@@ -15,7 +15,6 @@ import (
 
 	"github.com/JoachimFlottorp/yeahapi/internal/config"
 	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
-	"github.com/JoachimFlottorp/yeahapi/internal/grpc"
 	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
 	"github.com/JoachimFlottorp/yeahapi/internal/redis"
 	"github.com/JoachimFlottorp/yeahapi/internal/web"
@@ -88,13 +87,6 @@ func main() {
 		}
 
 		_ = gCtx.Inst().Mongo.RawDatabase().CreateCollection(gCtx, string(mongo.CollectionAPILog))
-	}
-
-	{
-		gCtx.Inst().Grpc, err = grpc.NewInstance(conf.Grpc.Address)
-		if err != nil {
-			zap.S().Fatalw("Failed to create grpc instance", "error", err)
-		}
 	}
 
 	wg := sync.WaitGroup{}
