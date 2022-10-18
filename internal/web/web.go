@@ -18,11 +18,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
-	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/router"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/routes/api"
+	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/JoachimFlottorp/magnolia/internal/mongo"
+	"github.com/JoachimFlottorp/magnolia/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/router"
+	"github.com/JoachimFlottorp/magnolia/internal/web/routes/api"
 	"github.com/google/uuid"
 
 	"github.com/gorilla/mux"

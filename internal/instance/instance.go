@@ -1,8 +1,8 @@
 package instance
 
 import (
-	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
-	"github.com/JoachimFlottorp/yeahapi/internal/redis"
+	"github.com/JoachimFlottorp/magnolia/internal/mongo"
+	"github.com/JoachimFlottorp/magnolia/internal/redis"
 )
 
 type InstanceList struct {

@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/response"
 	"github.com/gorilla/mux"
 )
 

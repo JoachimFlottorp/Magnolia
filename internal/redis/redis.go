@@ -36,7 +36,7 @@ func (r *redisInstance) formatKey(key string) string {
 }
 
 func (r *redisInstance) Prefix() string {
-	return "yeahapi:"
+	return "magnolia:"
 }
 
 func (r *redisInstance) Ping(ctx context.Context) error {
