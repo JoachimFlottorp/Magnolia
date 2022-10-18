@@ -13,11 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/config"
-	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
-	"github.com/JoachimFlottorp/yeahapi/internal/mongo"
-	"github.com/JoachimFlottorp/yeahapi/internal/redis"
-	"github.com/JoachimFlottorp/yeahapi/internal/web"
+	"github.com/JoachimFlottorp/magnolia/internal/config"
+	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/JoachimFlottorp/magnolia/internal/mongo"
+	"github.com/JoachimFlottorp/magnolia/internal/redis"
+	"github.com/JoachimFlottorp/magnolia/internal/web"
 
 	"go.uber.org/zap"
 )

@@ -1,4 +1,4 @@
-module github.com/JoachimFlottorp/yeahapi
+module github.com/JoachimFlottorp/magnolia
 
 go 1.19
 

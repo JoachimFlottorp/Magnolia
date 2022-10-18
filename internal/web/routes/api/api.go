@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/ctx"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/response"
-	"github.com/JoachimFlottorp/yeahapi/internal/web/router"
+	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/JoachimFlottorp/magnolia/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 
 	"github.com/gorilla/mux"
 )

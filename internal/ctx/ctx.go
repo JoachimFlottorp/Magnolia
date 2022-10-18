@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/config"
-	"github.com/JoachimFlottorp/yeahapi/internal/instance"
+	"github.com/JoachimFlottorp/magnolia/internal/config"
+	"github.com/JoachimFlottorp/magnolia/internal/instance"
 )
 
 type Context interface {
