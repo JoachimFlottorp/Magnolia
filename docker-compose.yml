@@ -7,15 +7,15 @@ version: '3.6'
 
 services:
   server:
-    image: jf/yeahapi.server
+    image: jf/magnolia.server
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: "yeahapi-server"
+    container_name: "magnolia-server"
     ports:
       - "3004:3004"
     networks:
-      - "yeahapi"
+      - "magnolia"
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json
@@ -23,6 +23,6 @@ services:
       - "host.docker.internal:host-gateway"
 
 networks:
-  yeahapi:
-    name: yeahapi
+  magnolia:
+    name: magnolia
     external: true

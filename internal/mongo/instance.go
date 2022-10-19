@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/JoachimFlottorp/yeahapi/internal/config"
+	"github.com/JoachimFlottorp/magnolia/internal/config"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
