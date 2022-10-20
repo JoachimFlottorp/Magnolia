@@ -22,7 +22,9 @@ func (a *Route) Configure() router.RouteConfig {
 	return router.RouteConfig{
 		URI: "/api",
 		Method: []string{http.MethodGet},
-		Children: []router.Route{},
+		Children: []router.Route{
+			NewMarkovRoute(a.Ctx),
+		},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }

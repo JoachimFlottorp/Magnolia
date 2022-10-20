@@ -12,8 +12,8 @@
     "srv": false,
     "db": ""
   },
-  "grpc": {
-    "address": ""
+  "rmq": {
+    "uri": "amqp://user:password@localhost:5672/"
   },
   "http": {
     "port": 0

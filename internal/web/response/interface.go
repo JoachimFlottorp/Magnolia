@@ -39,3 +39,11 @@ type RouterResponseBuilder interface {
 	SetHeader(string, string) RouterResponseBuilder
 	Build() RouterResponse
 }
+
+type ErrorResponseBuilder interface {
+	RouterResponseBuilder
+
+	InternalServerError(...string) ErrorResponseBuilder
+	NotFound(...string) ErrorResponseBuilder
+	BadRequest(...string) ErrorResponseBuilder
+}
