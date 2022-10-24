@@ -28,6 +28,15 @@ type Instance interface {
 	Del(context.Context, string) error
 	// Expire sets the expiration of the key
 	Expire(context.Context, string, time.Duration) error
+
+	// Add a value to a set
+	LPush(context.Context, string, string) error
+	// Trim set to a specific length
+	LTrim(context.Context, string, int64, int64) error
+
+	LLen(context.Context, string) (int64, error)
+
+	GetAllList(context.Context, string) ([]string, error)
 	
 	// Prefix returns the prefix used for all keys
 	Prefix() string

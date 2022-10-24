@@ -59,6 +59,22 @@ func (r *redisInstance) Expire(ctx context.Context, key string, expiration time.
 	return r.client.Expire(ctx, r.formatKey(key), expiration).Err()
 }
 
+func (r *redisInstance) LPush(ctx context.Context, key string, value string) error {
+	return r.client.LPush(ctx, r.formatKey(key), value).Err()
+}
+
+func (r *redisInstance) LTrim(ctx context.Context, key string, start int64, stop int64) error {
+	return r.client.LTrim(ctx, r.formatKey(key), start, stop).Err()
+}
+
+func (r *redisInstance) LLen(ctx context.Context, key string) (int64, error) {
+	return r.client.LLen(ctx, r.formatKey(key)).Result()
+}
+
+func (r *redisInstance) GetAllList(ctx context.Context, key string) ([]string, error) {
+	return r.client.LRange(ctx, r.formatKey(key), 0, -1).Result()
+}
+
 func (r *redisInstance) Client() *redis.Client {
 	return r.client
 }

@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -27,11 +28,11 @@ import (
 var (
 	cfg 	= flag.String("config", "config.json", "Path to the config file")
 	debug 	= flag.Bool("debug", false, "Enable debug logging")
+	maxMsg 	= flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
 )
 
 func init() {
 	flag.Parse()
-	
 	if *debug {
 		b, _ := zap.NewDevelopmentConfig().Build()
 		zap.ReplaceGlobals(b)
@@ -169,14 +170,43 @@ func main() {
 			select {
 				case <-gCtx.Done(): return
 				case msg := <-ircMan.MessageQueue: {
-					zap.S().Debugw("Received message from irc manager", "message", msg)
+					key 	:= fmt.Sprintf("twitch-chat:%s", msg.Channel)
+					data 	:= msg.Message
+
+					/*
+						Using a list here allows us to moderate the amount of messages stored in redis.
+
+						Using LTrim we can ensure that the list never exceeds the maxMsg limit.
+
+						This implementation is not ideal as it is synchronously removing the oldest element in the list.
+						1, -1 in LTrim method
+
+						TODO: Improve
+					*/
+					
+					if len, err := gCtx.Inst().Redis.LLen(gCtx, key); err != nil {
+						zap.S().Errorw("Failed to get length of redis list", "error", err)
+						continue
+					} else {
+						if len >= *maxMsg {
+							if err := gCtx.Inst().Redis.LTrim(gCtx, key, 1, -1); err != nil {
+								zap.S().Errorw("Failed to trim redis list", "error", err)
+								continue
+							}
+						}
+					}
+
+					if err := gCtx.Inst().Redis.LPush(gCtx, key, data); err != nil {
+						zap.S().Errorw("Failed to push message to redis", "error", err)
+						continue
+					}
 				}
 			}
 		}
 	}()
 
 	zap.S().Info("Ready!")
-	
+
 	<-done
 
 	os.Exit(0)

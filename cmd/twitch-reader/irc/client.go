@@ -56,10 +56,7 @@ func (c *IrcConnection) Connect() error {
 	c.Conn = conn
 	wg := sync.WaitGroup{}
 
-	// wg.Add(1)
 	go c.handlePong(&wg)
-
-	// wg.Add(1)
 	go c.readLoop(&wg)
 
 	go func() {
@@ -72,8 +69,6 @@ func (c *IrcConnection) Connect() error {
 	c.Send("PASS " + c.Password)
 	c.Send("NICK " + c.User)
 
-	// wg.Wait()
-
 	return nil
 }
 
@@ -84,10 +79,6 @@ func (c *IrcConnection) Reconnect() {
 }
 
 func (c *IrcConnection) handlePong(wg *sync.WaitGroup) {
-	// defer func() {
-	// 	wg.Done()
-	// }()
-
 	for {
 		select {
 		case <-c.MsgHasRecv: continue
@@ -110,10 +101,8 @@ func (c *IrcConnection) handlePong(wg *sync.WaitGroup) {
 func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 	defer func() {
 		c.Conn.Close()
-
-		wg.Done()
 	}()
-	
+
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -122,7 +111,7 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 			} else {
 				zap.S().Errorw("Failed to read message from server", "error", err)
 			}
-			continue
+			return
 		}
 
 		if msgType != websocket.TextMessage {
