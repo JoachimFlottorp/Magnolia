@@ -103,8 +103,8 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 	defer func() {
 		c.Conn.Close()
 	}()
-
-	c.isReady = make(chan interface{})
+	
+	c.isReady =	make(chan interface{})
 
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
@@ -173,6 +173,15 @@ func (c *IrcConnection) handleLine(line string) {
 		if strings.HasPrefix(msg.Message, "Login authentication failed") {
 			zap.S().Errorw("Failed to authenticate with server")
 		}
+	}
+	case parser.JOIN: {
+		msg := parsed.(*parser.JoinMessage)
+
+		if msg.User != c.User {
+			return
+		}
+
+		zap.S().Infow("Joined channel", "channel", msg.Channel)
 	}
 	}
 

@@ -31,8 +31,7 @@ type Instance interface {
 
 	// Add a value to a set
 	LPush(context.Context, string, string) error
-	// Trim set to a specific length
-	LTrim(context.Context, string, int64, int64) error
+	LRPop(context.Context, string) error
 
 	LLen(context.Context, string) (int64, error)
 

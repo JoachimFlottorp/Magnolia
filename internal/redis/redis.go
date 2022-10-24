@@ -63,8 +63,8 @@ func (r *redisInstance) LPush(ctx context.Context, key string, value string) err
 	return r.client.LPush(ctx, r.formatKey(key), value).Err()
 }
 
-func (r *redisInstance) LTrim(ctx context.Context, key string, start int64, stop int64) error {
-	return r.client.LTrim(ctx, r.formatKey(key), start, stop).Err()
+func (r *redisInstance) LRPop(ctx context.Context, key string) error {
+	return r.client.RPop(ctx, r.formatKey(key)).Err()
 }
 
 func (r *redisInstance) LLen(ctx context.Context, key string) (int64, error) {

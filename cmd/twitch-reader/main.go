@@ -171,24 +171,13 @@ func main() {
 					key 	:= fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
 					data 	:= msg.Message
 
-					/*
-						Using a list here allows us to moderate the amount of messages stored in redis.
-
-						Using LTrim we can ensure that the list never exceeds the maxMsg limit.
-
-						This implementation is not ideal as it is synchronously removing the oldest element in the list.
-						1, -1 in LTrim method
-
-						TODO: Improve
-					*/
-					
 					if len, err := gCtx.Inst().Redis.LLen(gCtx, key); err != nil {
 						zap.S().Errorw("Failed to get length of redis list", "error", err)
 						continue
 					} else {
 						if len >= *maxMsg {
-							if err := gCtx.Inst().Redis.LTrim(gCtx, key, 1, -1); err != nil {
-								zap.S().Errorw("Failed to trim redis list", "error", err)
+							if err := gCtx.Inst().Redis.LRPop(gCtx, key); err != nil {
+								zap.S().Errorw("Failed to pop redis list", "error", err)
 								continue
 							}
 						}
@@ -227,8 +216,6 @@ func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq)
 
 		channel.Save(gCtx, gCtx.Inst().Mongo)
 	}
-
-	zap.S().Infow("Joining channel", "channel", channel.TwitchName)
 
 	irc.JoinChannel(channel)
 }

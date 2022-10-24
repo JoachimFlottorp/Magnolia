@@ -67,6 +67,9 @@ func ParseLine(line string) (Message, error) {
 	case "RECONNECT": {
 		return parseReconnect(&m), nil
 	}
+	case "JOIN": {
+		return parseJoin(m), nil
+	}
 	default: {
 		return &RawMessage{
 			Raw:     m.Raw,
@@ -150,5 +153,13 @@ func parseNotice(m ircMessage) *NoticeMessage {
 		Raw:     m.Raw,
 		Channel: sanitizeChannel(m.Params[0]),
 		Message: m.Params[1],
+	}
+}
+
+func parseJoin(m ircMessage) *JoinMessage {
+	return &JoinMessage{
+		Raw:     m.Raw,
+		Channel: sanitizeChannel(m.Params[0]),
+		User:    m.Source.Nick,
 	}
 }

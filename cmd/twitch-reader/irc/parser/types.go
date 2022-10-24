@@ -10,6 +10,7 @@ const (
 	RECONNECT MessageType = iota
 	NOTICE    MessageType = iota
 	ENDOFMOTD MessageType = iota
+	JOIN      MessageType = iota
 )
 
 type Message interface {
@@ -80,4 +81,14 @@ type EndOfMotdMessage struct {
 
 func (m *EndOfMotdMessage) GetType() MessageType {
 	return ENDOFMOTD
+}
+
+type JoinMessage struct {
+	Raw     string
+	User    string
+	Channel string
+}
+
+func (m *JoinMessage) GetType() MessageType {
+	return JOIN
 }

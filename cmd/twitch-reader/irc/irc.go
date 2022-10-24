@@ -48,7 +48,6 @@ func NewManager(gCtx ctx.Context) *IrcManager {
 					continue
 				}
 		
-				zap.S().Debugw("Connecting to channel", "channel", channel)
 				conn.Join(channel)
 			}
 			}
@@ -71,7 +70,6 @@ func (m *IrcManager) ConnectAllFromDatabase() error {
 		conn, err := m.availableConnector()
 		if err != nil { return err }
 
-		zap.S().Debugw("Connecting to channel", "channel", channel.TwitchName)
 		conn.Join(channel.TwitchName)
 	}
 	

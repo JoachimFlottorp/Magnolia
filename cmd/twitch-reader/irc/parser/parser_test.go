@@ -246,6 +246,46 @@ func TestParseNotice(t *testing.T) {
 	}
 }
 
+func TestParseJoin(t *testing.T) {
+	type testType struct {
+		Line string
+		Want *JoinMessage
+	}
+
+	tests := []testType{
+		{
+			Line: ":justinfan123!justinfan123@justinfan123.tmi.twitch.tv JOIN #pajlada",
+			Want: &JoinMessage {
+				Raw: ":justinfan123!justinfan123@justinfan123.tmi.twitch.tv JOIN #pajlada",
+				User: "justinfan123",
+				Channel: "pajlada",
+			},
+		},
+		{
+			Line: ":forsen!forsen@forsen.tmi.twitch.tv JOIN #forsen",
+			Want: &JoinMessage {
+				Raw: ":forsen!forsen@forsen.tmi.twitch.tv JOIN #forsen",
+				User: "forsen",
+				Channel: "forsen",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseLine(test.Line)
+		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		joinMsg := got.(*JoinMessage)
+
+		if joinMsg.GetType() != JOIN {
+			t.Errorf("got %v, want %v", got, test.Want)
+		}
+		
+		assertEqual(t, joinMsg.Raw, test.Want.Raw)
+		assertEqual(t, joinMsg.User, test.Want.User)
+		assertEqual(t, joinMsg.Channel, test.Want.Channel)
+	}
+}
+
 func assertEqual(t *testing.T, lhs, rhs string) {
 	if lhs != rhs {
 		t.Errorf("got %v, want %v", lhs, rhs)
