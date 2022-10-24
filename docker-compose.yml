@@ -10,10 +10,23 @@ services:
     image: jf/magnolia.server
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ./cmd/main/Dockerfile
     container_name: "magnolia-server"
     ports:
-      - "3004:3004"
+      - "3010:3010"
+    networks:
+      - "magnolia"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  twitch-reader:
+    image: jf/magnolia.twitch-reader
+    build:
+      context: .
+      dockerfile: ./cmd/twitch-reader/Dockerfile
+    container_name: "magnolia-twitch-reader"
     networks:
       - "magnolia"
     restart: unless-stopped
