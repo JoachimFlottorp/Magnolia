@@ -42,7 +42,7 @@ func New(ctx context.Context, opts *NewInstanceSettings) (Instance, error) {
 
 func (r *rabbitmqInstance) CreateQueue(ctx context.Context, opts QueueSettings) (amqp.Queue, error) {
 	return r.channel.QueueDeclare(
-		opts.Name,
+		opts.Name.String(),
 		true,
 		false,
 		false,
@@ -77,7 +77,7 @@ func (r *rabbitmqInstance) Publish(ctx context.Context, opts PublishSettings) er
 	err := r.channel.PublishWithContext(
 		ctx,
 		opts.Exchange,
-		opts.RoutingKey,
+		opts.RoutingKey.String(),
 		false,
 		false,
 		opts.Msg,
@@ -92,7 +92,7 @@ func (r *rabbitmqInstance) Publish(ctx context.Context, opts PublishSettings) er
 
 func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (chan amqp.Delivery, error) {
 	msgs, err := r.channel.Consume(
-		opts.Queue,
+		opts.Queue.String(),
 		opts.Consumer,
 		false,
 		false,

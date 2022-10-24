@@ -1,6 +1,3 @@
-# Generate protobuf files by running protoc
-
-# import function that runs protoc
 from subprocess import run, CalledProcessError
 import os
 
@@ -16,27 +13,25 @@ DEPS = [
     "google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2"
 ]
 
-def main(folders: list[str]) -> None:
-    for folder in folders:
-        print(f"Generating protobuf files for {folder}")
-        proc = run([PROCESS, *ARGUMENTS, f"{folder}/{folder}.proto"])
+def main(files: list[str]) -> None:
+    for file in files:
+        print(f"Generating protobuf files for {file}")
+        proc = run([PROCESS, *ARGUMENTS, f"{file}"])
         try:
             proc.check_returncode()
         except CalledProcessError as e:
             print(f"Error: {e}")
-            os.exit(1)
+            os._exit(1)
 
 
 def install_deps() -> None:
     for dep in DEPS:
         run(["go", "install", dep])
 
-def folders() -> list[str]:
-    folders = os.listdir('.')
-    folders = [folder for folder in folders if os.path.isdir(folder)]
-    
-    return folders
+def files() -> list[str]:
+    files = [file for file in os.listdir() if file.endswith(".proto")]
+    return files
 
 if __name__ == '__main__':
     install_deps()
-    main(folders())
+    main(files())

@@ -1,5 +1,3 @@
-FROM jf/yeahapi.deps AS deps
-
 FROM quay.io/goswagger/swagger:latest as swag
 WORKDIR /app
 COPY . .
@@ -9,7 +7,6 @@ FROM golang:1.19.1 as builder
 ENV GO111MODULE=on
 WORKDIR /app
 COPY . .
-COPY --from=deps /app/protobuf /app/protobuf
 
 RUN go mod download
 RUN go build -v -ldflags '-extldflags "-static"' -o server /app/cmd/server/main.go

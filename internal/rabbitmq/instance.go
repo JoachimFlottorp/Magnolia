@@ -6,28 +6,36 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
-type ExchangeType string
+type ExchangeType 	string
+type QueueName 		string
+
+func (q QueueName) String() string {
+	return string(q)
+}
+
 const (
 	ExchangeTypeDirect 	= ExchangeType("direct")
 	ExchangeTypeFanout 	= ExchangeType("fanout")
 	ExchangeTypeTopic  	= ExchangeType("topic")
 	ExchangeTypeHeaders = ExchangeType("headers")
+
+	QueueJoinRequest 	= QueueName("twitch-join-request")
 )
 
 
 type PublishSettings struct {
 	Exchange    string
-	RoutingKey  string
+	RoutingKey  QueueName
 	Msg 	    amqp091.Publishing
 }
 
 type ConsumeSettings struct {
-	Queue 		string
+	Queue 		QueueName
 	Consumer	string
 }
 
 type QueueSettings struct {
-	Name       string
+	Name       QueueName
 }
 
 type ExchangeSettings struct {

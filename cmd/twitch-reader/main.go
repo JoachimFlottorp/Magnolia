@@ -6,19 +6,20 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/JoachimFlottorp/magnolia/cmd/twitch-reader/irc"
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
-	"github.com/JoachimFlottorp/magnolia/internal/web"
+	pb "github.com/JoachimFlottorp/magnolia/protobuf"
+	"google.golang.org/protobuf/proto"
 
 	"go.uber.org/zap"
 )
@@ -66,6 +67,8 @@ func main() {
 	
 	gCtx, cancel := ctx.WithCancel(ctx.New(context.Background(), conf))
 
+	ircMan := irc.NewManager(gCtx)
+
 	{
 		gCtx.Inst().Redis, err = redis.Create(gCtx, redis.Options{
 			Address: conf.Redis.Address,
@@ -85,6 +88,8 @@ func main() {
 		if err != nil {
 			zap.S().Fatalw("Failed to create mongo instance", "error", err)
 		}
+
+		_ = gCtx.Inst().Mongo.RawDatabase().CreateCollection(gCtx, string(mongo.CollectionAPILog))
 	}
 
 	{
@@ -96,64 +101,35 @@ func main() {
 			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
 		}
 
-		// err = gCtx.Inst().RMQ.CreateExchange(gCtx, rabbitmq.ExchangeSettings{
-		// 	Name: "twitch",
-		// 	Type: rabbitmq.ExchangeTypeFanout,
-		// })
+		if _, err = gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
+			Name: rabbitmq.QueueJoinRequest,
+		}); err != nil {
+			zap.S().Fatalw("Failed to create rabbitmq queue", "error", err)
+		}
 
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq exchange", "error", err)
-		// }
-
-		// q, err := gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
-		// 	Name: "",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq queue", "error", err)
-		// }
-
-		// err = gCtx.Inst().RMQ.BindQueue(gCtx, rabbitmq.BindingSettings{
-		// 	Name: q.Name,
-		// 	Exchange: "twitch",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to bind rabbitmq queue", "error", err)
-		// }
-		
-		// listCh, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
-		// 	Queue: q.Name,
-		// 	Consumer: "",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq exchange", "error", err)
-		// }
-
-		// go func() {
-		// 	for {
-		// 		select {
-		// 		case <-gCtx.Done():
-		// 			return
-		// 		case msg := <-listCh:
-		// 			zap.S().Infof("Received message: %s", msg.ContentType)
-					
-		// 			t := twitch.JoinChannelReq{}
-
-		// 			err := proto.Unmarshal(msg.Body, &t)
-		// 			if err != nil {
-		// 				zap.S().Errorw("Failed to unmarshal proto", "error", err)
-		// 			} else {
-		// 				zap.S().Infow("Received message", "message", t.Channel, "queue", msg.RoutingKey)
-		// 			}
-
-		// 			msg.Ack(false)
-		// 		}
-		// 	}
-		// }()
+		go func() {
+			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings {
+				Queue: rabbitmq.QueueJoinRequest,
+			})
+			if err != nil {
+				zap.S().Fatalw("Failed to consume rabbitmq queue", "error", err)
+			}
+			for {
+				select {
+				case <-gCtx.Done():
+					return
+				case m := <-msg:
+					req := &pb.SubChannelReq{}
+					err = proto.Unmarshal(m.Body, req)
+					if err != nil {
+						zap.S().Fatalw("Failed to unmarshal rabbitmq message", "error", err)
+					}
+	
+					onJoinRequest(gCtx, ircMan, req)
+				}
+			}
+		}()
 	}
-
 
 	wg := sync.WaitGroup{}
 
@@ -178,14 +154,24 @@ func main() {
 		zap.S().Info("Shutdown complete")
 		close(done)
 	}()
-
+	
 	wg.Add(1)
 
 	go func() {
 		defer wg.Done()
 
-		if err := web.New(gCtx); err != nil && err != http.ErrServerClosed {
-			zap.S().Fatalw("Failed to start web server", "error", err)
+		err = ircMan.ConnectAllFromDatabase()
+		if err != nil {
+			zap.S().Fatalw("Failed to setup irc manager", "error", err)
+		}
+
+		for {
+			select {
+				case <-gCtx.Done(): return
+				case msg := <-ircMan.MessageQueue: {
+					zap.S().Debugw("Received message from irc manager", "message", msg)
+				}
+			}
 		}
 	}()
 
@@ -194,4 +180,23 @@ func main() {
 	<-done
 
 	os.Exit(0)
+}
+
+func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq) {
+	channel := mongo.TwitchChannel{
+		TwitchName: req.Channel,
+	}
+
+	if err := channel.GetByName(gCtx, gCtx.Inst().Mongo); err == mongo.ErrNoDocuments {
+		err = channel.ResolveByIVR(gCtx)
+		if err != nil {
+			zap.S().Errorw("Failed to resolve channel by IVR", "error", err)
+		}
+
+		channel.Save(gCtx, gCtx.Inst().Mongo)
+	}
+
+	zap.S().Infow("Joining channel", "channel", channel.TwitchName)
+
+	irc.JoinChannel(channel)
 }

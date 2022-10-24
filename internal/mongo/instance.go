@@ -13,8 +13,11 @@ import (
 type CollectionName string
 
 const (
-	CollectionAPILog CollectionName = "api_log"
+	CollectionAPILog = CollectionName("api_log")
+	CollectionTwitch = CollectionName("twitch")
 )
+
+var ErrNoDocuments = mongo.ErrNoDocuments
 
 type Instance interface {
 	Collection(CollectionName) *mongo.Collection
@@ -61,6 +64,9 @@ func New(ctx context.Context, cfg *config.Config) (Instance, error) {
 	}
 
 	db := client.Database(cfg.Mongo.DB)
+
+	_ = db.CreateCollection(ctx, string(CollectionAPILog))
+	_ = db.CreateCollection(ctx, string(CollectionTwitch))
 
 	return &mongoInst{
 		client: client,

@@ -24,6 +24,7 @@ import (
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 	"github.com/JoachimFlottorp/magnolia/internal/web/routes/api"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
@@ -171,7 +172,7 @@ func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
 		
 		go func() {
 			log := mongo.ApiLog {
-				ID: u.String(),
+				ID: primitive.NewObjectID(),
 				Timestamp: t,
 				Method: r.Method,
 				Path: r.URL.Path,

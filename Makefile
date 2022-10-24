@@ -17,7 +17,7 @@ proto:
 	cd protobuf; python3 generate.py
 
 compose:
-	docker build -f Dockerfile.shared -t jf/yeahapi.deps .
+	docker build -f Dockerfile.shared -t jf/magnolia.deps .
 	docker compose build
 	docker compose up
 

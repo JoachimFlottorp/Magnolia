@@ -7,8 +7,13 @@ import (
 	"strings"
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/web/response"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
+	pb "github.com/JoachimFlottorp/magnolia/protobuf"
+	"github.com/gogo/protobuf/proto"
+	"github.com/rabbitmq/amqp091-go"
+
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 
@@ -42,7 +47,17 @@ type MarkovRoute struct {
 }
 
 func NewMarkovRoute(gCtx ctx.Context) router.Route {
-	return &MarkovRoute{gCtx}
+	_, err := gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
+		Name: rabbitmq.QueueJoinRequest,
+	})
+
+	if err != nil {
+		zap.S().Fatalw("Failed to create rabbitmq queue", "name", rabbitmq.QueueJoinRequest, "error", err)
+	}
+
+	return &MarkovRoute{
+		Ctx: gCtx,
+	}
 }
 
 func (a *MarkovRoute) Configure() router.RouteConfig {
@@ -81,9 +96,40 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 	storedData, err := a.Ctx.Inst().Redis.Get(r.Context(), fmt.Sprintf("channel:%s:chat-data", channel))
 	if err != nil {
 		if err == redis.Nil {
+			req := pb.SubChannelReq{
+				Channel: channel,
+			}
+
+			reqByte, err := proto.Marshal(&req)
+			if err != nil {
+				zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+				
+				return response.
+					Error().
+					InternalServerError().
+					Build()
+			}
+			
+			err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
+				RoutingKey: rabbitmq.QueueJoinRequest,
+				Msg: amqp091.Publishing{
+					Body: reqByte,
+					ContentType: "application/protobuf; twitch.SubChannelReq",
+				},
+			})
+
+			if err != nil {
+				zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
+
+				return response.
+					Error().
+					InternalServerError("Chat logger not available").
+					Build()
+			}
+			
 			return response.
 				Error().
-				NotFound("No data found for channel").
+				NotFound("Data missing, started generating").
 				Build()
 		}
 		
