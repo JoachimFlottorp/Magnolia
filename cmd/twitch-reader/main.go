@@ -183,6 +183,10 @@ func main() {
 }
 
 func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq) {
+	if req.Channel == "" {
+		return
+	}
+	
 	channel := mongo.TwitchChannel{
 		TwitchName: req.Channel,
 	}

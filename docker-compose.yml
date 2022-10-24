@@ -21,6 +21,8 @@ services:
       - ./config.json:/app/config.json
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    command: -debug
+
   twitch-reader:
     image: jf/magnolia.twitch-reader
     build:
@@ -34,7 +36,8 @@ services:
       - ./config.json:/app/config.json
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
+    command: -debug
+      
 networks:
   magnolia:
     name: magnolia

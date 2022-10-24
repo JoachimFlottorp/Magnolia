@@ -15,6 +15,7 @@ var (
 type rabbitmqInstance struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
+	isOpen 	chan *amqp.Error
 }
 
 func New(ctx context.Context, opts *NewInstanceSettings) (Instance, error) {
@@ -37,6 +38,7 @@ func New(ctx context.Context, opts *NewInstanceSettings) (Instance, error) {
 	return &rabbitmqInstance{
 		conn:    conn,
 		channel: ch,
+		isOpen:  conn.NotifyClose(make(chan *amqp.Error)),
 	}, nil
 }
 
@@ -110,6 +112,10 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 		for {
 			select {
 			case <-ctx.Done():
+				close(out)
+				return
+			case <-r.isOpen:
+				zap.S().Warn("RabbitMQ connection closed")
 				close(out)
 				return
 			case msg, ok := <-msgs:

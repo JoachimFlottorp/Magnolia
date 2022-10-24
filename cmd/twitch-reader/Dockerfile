@@ -12,7 +12,7 @@ COPY . .
 COPY --from=deps /src/protobuf /src/protobuf
 
 RUN go mod download
-RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/server/main.go
+RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/twitch-reader/main.go
 
 FROM alpine:latest
 WORKDIR /app

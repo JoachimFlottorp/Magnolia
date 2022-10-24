@@ -95,63 +95,6 @@ func main() {
 		if err != nil {
 			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
 		}
-
-		// err = gCtx.Inst().RMQ.CreateExchange(gCtx, rabbitmq.ExchangeSettings{
-		// 	Name: "twitch",
-		// 	Type: rabbitmq.ExchangeTypeFanout,
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq exchange", "error", err)
-		// }
-
-		// q, err := gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
-		// 	Name: "",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq queue", "error", err)
-		// }
-
-		// err = gCtx.Inst().RMQ.BindQueue(gCtx, rabbitmq.BindingSettings{
-		// 	Name: q.Name,
-		// 	Exchange: "twitch",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to bind rabbitmq queue", "error", err)
-		// }
-		
-		// listCh, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
-		// 	Queue: q.Name,
-		// 	Consumer: "",
-		// })
-
-		// if err != nil {
-		// 	zap.S().Fatalw("Failed to create rabbitmq exchange", "error", err)
-		// }
-
-		// go func() {
-		// 	for {
-		// 		select {
-		// 		case <-gCtx.Done():
-		// 			return
-		// 		case msg := <-listCh:
-		// 			zap.S().Infof("Received message: %s", msg.ContentType)
-					
-		// 			t := twitch.JoinChannelReq{}
-
-		// 			err := proto.Unmarshal(msg.Body, &t)
-		// 			if err != nil {
-		// 				zap.S().Errorw("Failed to unmarshal proto", "error", err)
-		// 			} else {
-		// 				zap.S().Infow("Received message", "message", t.Channel, "queue", msg.RoutingKey)
-		// 			}
-
-		// 			msg.Ack(false)
-		// 		}
-		// 	}
-		// }()
 	}
 
 

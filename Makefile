@@ -18,8 +18,6 @@ proto:
 
 docker:
 	docker build -f Dockerfile.shared 				-t jf/magnolia.deps .
-	docker build -f ./cmd/server/Dockerfile 		-t jf/magnolia.main .
-	docker build -f ./cmd/twitch-reader/Dockerfile 	-t jf/magnolia.twitch-reader .
 
 compose: docker
 	docker compose build

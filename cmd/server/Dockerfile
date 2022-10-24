@@ -20,6 +20,7 @@ WORKDIR /app
 RUN apk --no-cache add ca-certificates libc6-compat make
 
 COPY --from=builder /src/server /app/server
+COPY --from=swag /src/web/public/swagger.json /app/web/public/swagger.json
 
 RUN chmod +x /app/server
 
