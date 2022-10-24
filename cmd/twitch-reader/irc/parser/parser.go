@@ -49,6 +49,12 @@ func ParseLine(line string) (Message, error) {
 	}
 
 	switch m.Command {
+	case "376": {
+		return parseMotd(m), nil
+	}
+	case "NOTICE": {
+		return parseNotice(m), nil
+	}
 	case "PING": {
 		return parsePing(&m), nil
 	}
@@ -68,6 +74,10 @@ func ParseLine(line string) (Message, error) {
 		}, nil
 	}
 	}
+}
+
+func sanitizeChannel(channel string) string {
+	return strings.Replace(channel, "#", "", 1)
 }
 
 func parseSource(source string) ircMessageSource {
@@ -115,7 +125,7 @@ func parsePong(m *ircMessage) *PongMessage {
 func parsePrivmsg(m *ircMessage) *PrivmsgMessage {
 	return &PrivmsgMessage{
 		Raw:     m.Raw,
-		Channel: strings.Replace(m.Params[0], "#", "", 1),
+		Channel: sanitizeChannel(m.Params[0]),
 		User:    m.Source.Nick,
 		Message: m.Params[1],
 	}
@@ -124,5 +134,21 @@ func parsePrivmsg(m *ircMessage) *PrivmsgMessage {
 func parseReconnect(m *ircMessage) *ReconnectMessage {
 	return &ReconnectMessage{
 		Raw: m.Raw,
+	}
+}
+
+func parseMotd(m ircMessage) *EndOfMotdMessage {
+	return &EndOfMotdMessage{
+		Raw: m.Raw,
+		User: sanitizeChannel(m.Params[0]),
+		Message: m.Params[1],
+	}
+}
+
+func parseNotice(m ircMessage) *NoticeMessage {
+	return &NoticeMessage{
+		Raw:     m.Raw,
+		Channel: sanitizeChannel(m.Params[0]),
+		Message: m.Params[1],
 	}
 }

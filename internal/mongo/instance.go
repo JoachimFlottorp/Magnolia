@@ -22,8 +22,6 @@ var ErrNoDocuments = mongo.ErrNoDocuments
 type Instance interface {
 	Collection(CollectionName) *mongo.Collection
 	Ping(ctx context.Context) error
-	RawClient() *mongo.Client
-	RawDatabase() *mongo.Database
 }
 
 type mongoInst struct {
@@ -63,14 +61,9 @@ func New(ctx context.Context, cfg *config.Config) (Instance, error) {
 		return nil, err
 	}
 
-	db := client.Database(cfg.Mongo.DB)
-
-	_ = db.CreateCollection(ctx, string(CollectionAPILog))
-	_ = db.CreateCollection(ctx, string(CollectionTwitch))
-
 	return &mongoInst{
 		client: client,
-		db:     db,
+		db:     client.Database(cfg.Mongo.DB),
 	}, nil
 }
 
@@ -82,10 +75,3 @@ func (i *mongoInst) Ping(ctx context.Context) error {
 	return i.db.Client().Ping(ctx, nil)
 }
 
-func (i *mongoInst) RawClient() *mongo.Client {
-	return i.client
-}
-
-func (i *mongoInst) RawDatabase() *mongo.Database {
-	return i.db
-}

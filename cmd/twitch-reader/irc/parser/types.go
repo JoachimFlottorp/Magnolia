@@ -8,6 +8,8 @@ const (
 	PING      MessageType = iota
 	PONG      MessageType = iota
 	RECONNECT MessageType = iota
+	NOTICE    MessageType = iota
+	ENDOFMOTD MessageType = iota
 )
 
 type Message interface {
@@ -58,4 +60,24 @@ type ReconnectMessage struct {
 
 func (m *ReconnectMessage) GetType() MessageType {
 	return RECONNECT
+}
+
+type NoticeMessage struct {
+	Raw     string
+	Channel string
+	Message string
+}
+
+func (m *NoticeMessage) GetType() MessageType {
+	return NOTICE
+}
+
+type EndOfMotdMessage struct {
+	Raw     string
+	User    string
+	Message string
+}
+
+func (m *EndOfMotdMessage) GetType() MessageType {
+	return ENDOFMOTD
 }

@@ -89,8 +89,6 @@ func main() {
 		if err != nil {
 			zap.S().Fatalw("Failed to create mongo instance", "error", err)
 		}
-
-		_ = gCtx.Inst().Mongo.RawDatabase().CreateCollection(gCtx, string(mongo.CollectionAPILog))
 	}
 
 	{
@@ -170,7 +168,7 @@ func main() {
 			select {
 				case <-gCtx.Done(): return
 				case msg := <-ircMan.MessageQueue: {
-					key 	:= fmt.Sprintf("twitch-chat:%s", msg.Channel)
+					key 	:= fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
 					data 	:= msg.Message
 
 					/*

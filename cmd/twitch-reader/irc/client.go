@@ -18,6 +18,7 @@ type IrcConnection struct {
 	Read 		chan string
 	RecvPong 	chan bool
 	MsgHasRecv 	chan bool
+	isReady 	chan interface{}
 
 	Conn *websocket.Conn
 	Mtx  sync.Mutex
@@ -69,6 +70,8 @@ func (c *IrcConnection) Connect() error {
 	c.Send("PASS " + c.Password)
 	c.Send("NICK " + c.User)
 
+	<-c.isReady
+	
 	return nil
 }
 
@@ -83,8 +86,6 @@ func (c *IrcConnection) handlePong(wg *sync.WaitGroup) {
 		select {
 		case <-c.MsgHasRecv: continue
 		case <-time.After(4 * time.Minute): {
-			zap.S().Debug("Sending PING")
-			
 			c.Send("PING : HI-:D")
 
 			select {
@@ -102,6 +103,8 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 	defer func() {
 		c.Conn.Close()
 	}()
+
+	c.isReady = make(chan interface{})
 
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
@@ -159,6 +162,17 @@ func (c *IrcConnection) handleLine(line string) {
 		if c.MessageSubscriber == nil { return }
 
 		c.MessageSubscriber(msg)
+	}
+	case parser.ENDOFMOTD: {
+		zap.S().Infow("Connected to server")
+		close(c.isReady)
+	}
+	case parser.NOTICE: {
+		msg := parsed.(*parser.NoticeMessage)
+
+		if strings.HasPrefix(msg.Message, "Login authentication failed") {
+			zap.S().Errorw("Failed to authenticate with server")
+		}
 	}
 	}
 

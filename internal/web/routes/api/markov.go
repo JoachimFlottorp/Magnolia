@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -19,6 +18,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mb-14/gomarkov"
+)
+
+var (
+	ErrNoData = "no data"
 )
 
 // swagger:model MarkovResponse
@@ -80,6 +83,7 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 	seed := []string{gomarkov.StartToken}
 	
 	channel = r.URL.Query().Get("channel")
+	key := fmt.Sprintf("twitch:%s:chat-data", channel)
 	
 	if channel == "" {
 		return response.
@@ -92,69 +96,58 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 		seed = append(seed, strings.Split(s, " ")...)
 	}
 
-	// TODO: Find a better way of storing data
-	storedData, err := a.Ctx.Inst().Redis.Get(r.Context(), fmt.Sprintf("channel:%s:chat-data", channel))
+	storedData, err := a.Ctx.Inst().Redis.GetAllList(r.Context(), key)
 	if err != nil {
-		if err == redis.Nil {
-			req := pb.SubChannelReq{
-				Channel: channel,
-			}
-
-			reqByte, err := proto.Marshal(&req)
-			if err != nil {
-				zap.S().Errorw("Failed to marshal protobuf message", "error", err)
-				
-				return response.
-					Error().
-					InternalServerError().
-					Build()
-			}
-			
-			err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
-				RoutingKey: rabbitmq.QueueJoinRequest,
-				Msg: amqp091.Publishing{
-					Body: reqByte,
-					ContentType: "application/protobuf; twitch.SubChannelReq",
-				},
-			})
-
-			if err != nil {
-				zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
-
-				return response.
-					Error().
-					InternalServerError("Chat logger not available").
-					Build()
-			}
-			
+		if err != redis.Nil {
+			zap.S().Errorf("Failed to get channel data from redis: %s", err)
+		
 			return response.
 				Error().
-				NotFound("Data missing, started generating").
+				InternalServerError().
 				Build()
 		}
 		
-		zap.S().Errorf("Failed to get channel data from redis: %s", err)
+		req := pb.SubChannelReq{
+			Channel: channel,
+		}
+
+		reqByte, err := proto.Marshal(&req)
+		if err != nil {
+			zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+			
+			return response.
+				Error().
+				InternalServerError().
+				Build()
+		}
+		
+		err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
+			RoutingKey: rabbitmq.QueueJoinRequest,
+			Msg: amqp091.Publishing{
+				Body: reqByte,
+				ContentType: "application/protobuf; twitch.SubChannelReq",
+			},
+		})
+
+		if err != nil {
+			zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
+
+			return response.
+				Error().
+				InternalServerError("Chat logger not available").
+				Build()
+		}
 		
 		return response.
 			Error().
-			InternalServerError().
-			Build()
-	}
-
-	var arrayData []string
-	if err := json.Unmarshal([]byte(storedData), &arrayData); err != nil {
-		zap.S().Errorf("Failed to unmarshal channel data: %s", err)
-
-		return response.
-			Error().
-			InternalServerError().
+			NotFound(ErrNoData).
 			Build()
 	}
 
 	chain := gomarkov.NewChain(1)
 
-	for i := range arrayData {
-		chain.Add(strings.Split(arrayData[i], " "))
+	for i := range storedData {
+		chain.Add(strings.Split(storedData[i], " "))
 	}
 	
 	result, err := chain.Generate(seed)

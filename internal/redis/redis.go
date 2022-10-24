@@ -72,7 +72,13 @@ func (r *redisInstance) LLen(ctx context.Context, key string) (int64, error) {
 }
 
 func (r *redisInstance) GetAllList(ctx context.Context, key string) ([]string, error) {
-	return r.client.LRange(ctx, r.formatKey(key), 0, -1).Result()
+	a, e := r.client.LRange(ctx, r.formatKey(key), 0, -1).Result()
+
+	if len(a) == 0 {
+		return nil, redis.Nil
+	}
+	
+	return a, e
 }
 
 func (r *redisInstance) Client() *redis.Client {

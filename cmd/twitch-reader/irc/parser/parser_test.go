@@ -174,6 +174,78 @@ func TestUnknownCommand(t *testing.T) {
 	}
 }
 
+func TestParseMotd(t *testing.T) {
+	type testType struct {
+		Line string
+		Want *EndOfMotdMessage
+	}
+
+	tests := []testType{
+		{
+			Line: ":tmi.twitch.tv 376 foobar :>",
+			Want: &EndOfMotdMessage {
+				Raw: ":tmi.twitch.tv 376 foobar :>",
+				User: "foobar",
+				Message: ">",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseLine(test.Line)
+		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		motdMsg := got.(*EndOfMotdMessage)
+
+		if motdMsg.GetType() != ENDOFMOTD {
+			t.Errorf("got %v, want %v", got, test.Want)
+		}
+		
+		assertEqual(t, motdMsg.Raw, test.Want.Raw)
+		assertEqual(t, motdMsg.User, test.Want.User)
+		assertEqual(t, motdMsg.Message, test.Want.Message)
+	}
+}
+
+func TestParseNotice(t *testing.T) {
+	type testType struct {
+		Line string
+		Want *NoticeMessage
+	}
+
+	tests := []testType{
+		{
+			Line: ":tmi.twitch.tv NOTICE #forsen :Login unsuccessful",
+			Want: &NoticeMessage {
+				Raw: ":tmi.twitch.tv NOTICE #forsen :Login unsuccessful",
+				Channel: "forsen",
+				Message: "Login unsuccessful",
+			},
+		},
+		{
+			Line: ":tmi.twitch.tv NOTICE * :Login authentication failed",
+			Want: &NoticeMessage {
+				Raw: ":tmi.twitch.tv NOTICE * :Login authentication failed",
+				Channel: "*",
+				Message: "Login authentication failed",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got, err := ParseLine(test.Line)
+		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		noticeMsg := got.(*NoticeMessage)
+
+		if noticeMsg.GetType() != NOTICE {
+			t.Errorf("got %v, want %v", got, test.Want)
+		}
+		
+		assertEqual(t, noticeMsg.Raw, test.Want.Raw)
+		assertEqual(t, noticeMsg.Channel, test.Want.Channel)
+		assertEqual(t, noticeMsg.Message, test.Want.Message)
+	}
+}
+
 func assertEqual(t *testing.T, lhs, rhs string) {
 	if lhs != rhs {
 		t.Errorf("got %v, want %v", lhs, rhs)
