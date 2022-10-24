@@ -1,9 +1,11 @@
-FROM quay.io/goswagger/swagger:latest as swag
+FROM jf/magnolia.deps AS deps
+
+FROM quay.io/goswagger/swagger:latest AS swag
 WORKDIR /src
 COPY . .
 RUN make docs
 
-FROM golang:1.19.2 as builder
+FROM golang:1.19.2 AS builder
 ENV GO111MODULE=on
 WORKDIR /src
 COPY . .
