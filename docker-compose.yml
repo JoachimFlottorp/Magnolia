@@ -10,7 +10,7 @@ services:
     image: jf/magnolia.server
     build:
       context: .
-      dockerfile: ./cmd/main/Dockerfile
+      dockerfile: ./cmd/server/Dockerfile
     container_name: "magnolia-server"
     ports:
       - "3010:3010"
