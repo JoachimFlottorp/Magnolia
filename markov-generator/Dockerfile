@@ -1,19 +1,19 @@
 FROM jf/magnolia.deps as deps
 
 FROM node:16 AS builder
-WORKDIR /src
+WORKDIR /src/markov-generator
 
 COPY [ "package.json", "package-lock.json*", "./" ]
 
 RUN npm ci
 
-COPY . .
-COPY --from=deps /src/protobuf /src/markov-generator/src/protobuf
+COPY ./markov-generator .
+COPY --from=deps /src/protobuf/*.ts /src/markov-generator/src/protobuf/
 
 ENV NODE_ENV=production
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /src /app
+COPY --from=builder /src/markov-generator /app
 
-ENTRYPOINT [ "/app/node_modules/.bin/ts-node", "/app/markov-generator/src/index.ts" ]
+ENTRYPOINT [ "/app/node_modules/.bin/ts-node", "/app/src/index.ts" ]
