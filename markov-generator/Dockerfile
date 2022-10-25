@@ -13,6 +13,7 @@ COPY --from=deps /src/protobuf/*.ts /src/markov-generator/src/protobuf/
 ENV NODE_ENV=production
 
 FROM alpine:latest
+RUN apk add --no-cache nodejs npm
 WORKDIR /app
 COPY --from=builder /src/markov-generator /app
 
