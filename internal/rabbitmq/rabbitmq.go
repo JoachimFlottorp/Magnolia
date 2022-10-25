@@ -93,6 +93,13 @@ func (r *rabbitmqInstance) Publish(ctx context.Context, opts PublishSettings) er
 }
 
 func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (chan *amqp.Delivery, error) {
+	_, err := r.CreateQueue(ctx, QueueSettings{
+		Name: opts.Queue,
+	})
+
+	if err != nil { return nil, err }
+	
+	
 	msgs, err := r.channel.Consume(
 		opts.Queue.String(),
 		opts.Consumer,
@@ -102,9 +109,8 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 		false,
 		nil,
 	)
-	if err != nil {
-		return nil, err
-	}
+
+	if err != nil { return nil, err }
 
 	out := make(chan *amqp.Delivery, 50)
 
