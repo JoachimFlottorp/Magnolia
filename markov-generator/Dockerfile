@@ -3,7 +3,7 @@ FROM jf/magnolia.deps as deps
 FROM node:16 AS builder
 WORKDIR /src/markov-generator
 
-COPY [ "markov-generator/package.json", "markov-generator/package-lock.json*", "./markov-generator/" ]
+COPY [ "markov-generator/package.json", "markov-generator/package-lock.json*", "./" ]
 
 RUN npm ci
 
