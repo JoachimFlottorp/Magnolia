@@ -23,8 +23,8 @@ services:
       - "host.docker.internal:host-gateway"
     command: -debug
     depends_on:
-      - markov-generator:
-          condition: service_healthy
+      markov-generator:
+        condition: service_healthy
   twitch-reader:
     image: jf/magnolia.twitch-reader
     build:
