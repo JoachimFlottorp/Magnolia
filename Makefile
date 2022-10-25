@@ -13,8 +13,7 @@ docs:
 	swagger generate spec -m -o ./web/public/swagger.json
 
 proto:
-	export PYTHONPATH
-	cd protobuf; python3 generate.py
+	cd protobuf; npm run generate
 
 docker:
 	docker build -f Dockerfile.shared -t jf/magnolia.deps .

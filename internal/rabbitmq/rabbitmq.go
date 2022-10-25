@@ -92,7 +92,7 @@ func (r *rabbitmqInstance) Publish(ctx context.Context, opts PublishSettings) er
 	return err
 }
 
-func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (chan amqp.Delivery, error) {
+func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (chan *amqp.Delivery, error) {
 	msgs, err := r.channel.Consume(
 		opts.Queue.String(),
 		opts.Consumer,
@@ -106,7 +106,7 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 		return nil, err
 	}
 
-	out := make(chan amqp.Delivery)
+	out := make(chan *amqp.Delivery, 50)
 
 	go func() {
 		for {
@@ -118,7 +118,7 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 				zap.S().Warn("RabbitMQ connection closed")
 				close(out)
 				return
-			case msg, ok := <-msgs:
+			case msg, ok := <-msgs: {
 				if !ok {
 					zap.S().Errorw("Channel is not ok", "queue", opts.Queue)
 					close(out)
@@ -129,9 +129,10 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 				// serialize the message from json or protobuf to a struct
 				// Automatically if this is even possible.
 
-				out <- msg
+				out <- &msg
 
 				msg.Ack(false)
+			}
 			}
 		}
 	}()

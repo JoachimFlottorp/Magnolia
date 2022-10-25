@@ -18,7 +18,7 @@ type IrcConnection struct {
 	Read 		chan string
 	RecvPong 	chan bool
 	MsgHasRecv 	chan bool
-	isReady 	chan interface{}
+	isReady 	chan bool
 
 	Conn *websocket.Conn
 	Mtx  sync.Mutex
@@ -104,7 +104,7 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 		c.Conn.Close()
 	}()
 	
-	c.isReady =	make(chan interface{})
+	c.isReady =	make(chan bool)
 
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
@@ -165,7 +165,7 @@ func (c *IrcConnection) handleLine(line string) {
 	}
 	case parser.ENDOFMOTD: {
 		zap.S().Infow("Connected to server")
-		close(c.isReady)
+		c.isReady <- true
 	}
 	case parser.NOTICE: {
 		msg := parsed.(*parser.NoticeMessage)

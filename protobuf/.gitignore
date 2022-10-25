@@ -1,1 +1,5 @@
 *.go
+*.json
+node_modules
+*.ts
+!generate.ts

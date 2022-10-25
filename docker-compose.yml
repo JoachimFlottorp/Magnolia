@@ -37,6 +37,23 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
+
+  markov-generator:
+    image: jf/magnolia.markov-generator
+    build:
+      context: .
+      dockerfile: ./markov-generator/Dockerfile
+    container_name: "magnolia-markov-generator"
+    ports:
+      - "3011:3011"
+    networks:
+      - "magnolia"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: /app/config.json
       
 networks:
   magnolia:

@@ -150,7 +150,6 @@ func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		
 		res := fn(w, r)
-		u := uuid.New()
 		t := time.Now()
 
 		for k, v := range res.Headers {
@@ -158,7 +157,7 @@ func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
 		}
 
 		apiRes := response.ApiResponse {
-			RequestID: u,
+			RequestID: res.UUID,
 			Timestamp: t,
 		}
 

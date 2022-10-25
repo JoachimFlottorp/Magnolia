@@ -9,7 +9,6 @@ import (
 
 // swagger:model apiResponse
 type ApiResponse struct {
-	// If the request was successful - always true
 	Success 	bool       	`json:"success"`
 	// Your request ID
 	RequestID 	uuid.UUID 	`json:"request_id"`
@@ -18,9 +17,9 @@ type ApiResponse struct {
 	// The data of the request
 	// This is dependent on the endpoint
 	// refer to the endpoint documentation
-	Data    json.RawMessage `json:"data,omitempty"`
+	Data    json.RawMessage `json:"data"`
 	// Present if the request failed, otherwise null
-	Error	string   `json:"error,omitempty"`
+	Error	string   `json:"error"`
 }
 
 // RouterResponse defines the response of every handler
@@ -29,6 +28,7 @@ type RouterResponse struct {
 	Headers    map[string]string
 	Body 	   json.RawMessage
 	Error 	   error
+	UUID	   uuid.UUID
 }
 
 // RouterErrorResponse defines a builder for creating a RouterResponse
@@ -37,6 +37,7 @@ type RouterResponseBuilder interface {
 	SetBody(string) RouterResponseBuilder
 	SetJSON(interface{}) RouterResponseBuilder
 	SetHeader(string, string) RouterResponseBuilder
+	SetCustomReqID(uuid.UUID) RouterResponseBuilder
 	Build() RouterResponse
 }
 

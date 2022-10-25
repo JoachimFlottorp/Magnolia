@@ -19,7 +19,8 @@ const (
 	ExchangeTypeTopic  	= ExchangeType("topic")
 	ExchangeTypeHeaders = ExchangeType("headers")
 
-	QueueJoinRequest 	= QueueName("twitch-join-request")
+	QueueJoinRequest 		= QueueName("twitch-join-request")
+	QueueMarkovGenenerator 	= QueueName("markov-generator")
 )
 
 
@@ -60,8 +61,5 @@ type Instance interface {
 	CreateQueue(context.Context, QueueSettings) (amqp091.Queue, error)
 	CreateExchange(context.Context, ExchangeSettings) error
 	BindQueue(context.Context, BindingSettings) error
-	// Consume messages from a queue
-	//
-	// Responds with a channel that sends the result of the deserialization  
-	Consume(context.Context, ConsumeSettings) (chan amqp091.Delivery, error)
+	Consume(context.Context, ConsumeSettings) (chan *amqp091.Delivery, error)
 }

@@ -8,7 +8,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/mb-14/gomarkov v0.0.0-20210216094942-a5b484cc0243
 	github.com/rabbitmq/amqp091-go v1.5.0
 	go.mongodb.org/mongo-driver v1.10.2
 	go.uber.org/zap v1.23.0

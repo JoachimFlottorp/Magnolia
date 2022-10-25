@@ -17,6 +17,10 @@ type Config struct {
 	RabbitMQ struct {
 		URI string `json:"uri"`
 	} `json:"rmq"`
+	Markov struct {
+		HealthAddress string `json:"health_address"`
+		HealthBind    int    `json:"health_bind"`
+	} `json:"markov"`
 	Http struct {
 		Port int `json:"port"`
 	} `json:"http"`

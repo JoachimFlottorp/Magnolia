@@ -17,4 +17,5 @@
 web/public/swagger.json
 config.json
 .vscode
+.vs
 bin

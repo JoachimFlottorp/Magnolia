@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +15,7 @@ type okResponseBuilder struct {
 	body 		json.RawMessage
 	headers    	map[string]string
 	isJson     	bool
+	id			uuid.UUID
 }
 
 func OkResponse() RouterResponseBuilder {
@@ -22,6 +24,7 @@ func OkResponse() RouterResponseBuilder {
 		headers:    make(map[string]string),
 		body: 	 	nil,
 		isJson: 	false,
+		id: 		uuid.New(),
 	}
 }
 
@@ -56,6 +59,11 @@ func (b *okResponseBuilder) SetHeader(key, value string) RouterResponseBuilder {
 	return b
 }
 
+func (b *okResponseBuilder) SetCustomReqID(id uuid.UUID) RouterResponseBuilder {
+	b.id = id
+	return b
+}
+
 func (b *okResponseBuilder) Build() RouterResponse {
 	if b.body == nil {
 		b.body = json.RawMessage(http.StatusText(b.statusCode))
@@ -65,5 +73,6 @@ func (b *okResponseBuilder) Build() RouterResponse {
 		StatusCode: b.statusCode,
 		Headers:    b.headers,
 		Body: 	 	b.body,
+		UUID: 		b.id,
 	}
 }

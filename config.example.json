@@ -15,6 +15,10 @@
   "rmq": {
     "uri": "amqp://user:password@localhost:5672/"
   },
+  "markov": {
+    "health_address": "http://127.0.0.1:3011",
+    "health_bind": 3011
+  },
   "http": {
     "port": 0
   }
