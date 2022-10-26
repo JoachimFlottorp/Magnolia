@@ -1,6 +1,6 @@
 FROM jf/magnolia.deps as deps
 
-FROM node:16 AS builder
+FROM node:18 AS builder
 WORKDIR /src/markov-generator
 
 COPY [ "markov-generator/package.json", "markov-generator/package-lock.json*", "./" ]

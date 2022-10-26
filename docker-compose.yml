@@ -22,9 +22,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
-    depends_on:
-      markov-generator:
-        condition: service_healthy
   twitch-reader:
     image: jf/magnolia.twitch-reader
     build:
@@ -56,11 +53,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: /app/config.json
-    healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:3011/health"]
-        interval: 10s
-        timeout: 1s
-        retries: 10
       
 networks:
   magnolia:

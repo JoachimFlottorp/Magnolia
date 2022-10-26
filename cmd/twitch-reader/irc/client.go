@@ -55,6 +55,8 @@ func (c *IrcConnection) Connect() error {
 	if err != nil { return err }
 
 	c.Conn = conn
+	c.isReady =	make(chan bool)
+	
 	wg := sync.WaitGroup{}
 
 	go c.handlePong(&wg)
@@ -104,8 +106,6 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 		c.Conn.Close()
 	}()
 	
-	c.isReady =	make(chan bool)
-
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -182,6 +182,7 @@ func (c *IrcConnection) handleLine(line string) {
 		}
 
 		zap.S().Infow("Joined channel", "channel", msg.Channel)
+		c.ConnectedChannels = append(c.ConnectedChannels, msg.Channel)
 	}
 	}
 
@@ -191,8 +192,6 @@ func (c *IrcConnection) Join(channel string) {
 	if channel == "" { return }
 	
 	c.Send("JOIN #" + channel)
-
-	c.ConnectedChannels = append(c.ConnectedChannels, channel)
 }
 
 func (c *IrcConnection) Send(msg string) {

@@ -122,6 +122,7 @@ func main() {
 					err = proto.Unmarshal(m.Body, req)
 					if err != nil {
 						zap.S().Fatalw("Failed to unmarshal rabbitmq message", "error", err)
+						continue
 					}
 	
 					onJoinRequest(gCtx, ircMan, req)
