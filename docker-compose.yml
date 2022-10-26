@@ -13,12 +13,13 @@ services:
       dockerfile: ./cmd/server/Dockerfile
     container_name: "magnolia-server"
     ports:
-      - "3010:3010"
+      - "3004:3004"
     networks:
       - "magnolia"
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json
+      - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
@@ -33,6 +34,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json
+      - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
@@ -50,6 +52,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./config.json:/app/config.json
+      - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: /app/config.json

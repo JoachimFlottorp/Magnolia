@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"sync"
 	"syscall"
 	"time"
@@ -29,6 +30,8 @@ var (
 	cfg 	= flag.String("config", "config.json", "Path to the config file")
 	debug 	= flag.Bool("debug", false, "Enable debug logging")
 	maxMsg 	= flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
+
+	botIgnoreList = regexp.MustCompile("(supibot|thepositivebot|ksyncbot|dontaddthisbot|streamelements|botnextdoor|botbear|streamlabs|nightbot)")
 )
 
 func init() {
@@ -171,6 +174,10 @@ func main() {
 				case msg := <-ircMan.MessageQueue: {
 					key 	:= fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
 					data 	:= msg.Message
+					user 	:= msg.User
+					if botIgnoreList.MatchString(user) {
+						continue
+					}
 
 					if len, err := gCtx.Inst().Redis.LLen(gCtx, key); err != nil {
 						zap.S().Errorw("Failed to get length of redis list", "error", err)
