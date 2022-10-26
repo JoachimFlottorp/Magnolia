@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
@@ -23,8 +24,9 @@ import (
 )
 
 var (
-	ErrNoData = "no data"
-	ErrTooLong = "took to long to generate markov chain"
+	ErrNoData 			= "no data"
+	ErrTooLong 			= "took to long to generate markov chain"
+	ErrUnableToGenerate = "unable to generate markov chain"
 
 	ValidChannel = regexp.MustCompile(`^[a-zA-Z0-9_]{4,25}$`)
 )
@@ -54,15 +56,10 @@ type MarkovGetParams struct {
 	Seed 	string `json:"seed"`
 }
 
-type markovDone struct {
-	Pb *pb.MarkovResponse
-	ID string
-}
-
 type MarkovRoute struct {
 	Ctx ctx.Context
 
-	markovReqChan chan markovDone
+	markovReqs map[string]chan *pb.MarkovResponse
 
 	isAlive bool
 }
@@ -78,7 +75,7 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 
 	a := &MarkovRoute{
 		Ctx: gCtx,
-		markovReqChan: make(chan markovDone, 50),
+		markovReqs: make(map[string]chan *pb.MarkovResponse),
 	}
 
 	go a.handleMarkovRequests()
@@ -220,6 +217,15 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 	}
 
 	if result.Error != nil {
+
+		if strings.HasPrefix(*result.Error, "Failed to build a sentence after") {
+			return response.
+				Error().
+				BadRequest(ErrUnableToGenerate).
+				SetCustomReqID(u).
+				Build()
+		}
+		
 		return response.
 			Error().
 			InternalServerError().
@@ -243,14 +249,6 @@ func (a *MarkovRoute) handleMarkovRequests() {
 		return
 	}
 	
-	go func() {
-		for {
-			time.Sleep(5 * time.Second)
-			
-			zap.S().Debugw("cap()", "cap", cap(msg))
-		}
-	}()
-	
 	for {
 		select {
 		case m := <-msg: {
@@ -266,17 +264,16 @@ func (a *MarkovRoute) handleMarkovRequests() {
 
 			zap.S().Debugf("Generated markov chain: %s", res.Result)
 
-			a.markovReqChan <- markovDone{
-				Pb: &res,
-				ID: m.CorrelationId,
+			if ch, ok := a.markovReqs[m.CorrelationId]; ok {
+				ch <- &res
+				close(ch)
+				delete(a.markovReqs, m.CorrelationId)
+			} else {
+				a.markovReqs[m.CorrelationId] = make(chan *pb.MarkovResponse)
+				a.markovReqs[m.CorrelationId] <- &res
 			}
 		}
-		case <-a.Ctx.Done(): {
-			zap.S().Debugw("Is done")
-			
-			close(a.markovReqChan)
-			return
-		}
+		case <-a.Ctx.Done(): return
 		}
 	}
 }
@@ -304,15 +301,23 @@ func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []st
 	markovChan := make(chan *pb.MarkovResponse)
 
 	go func() {
+		if a.markovReqs[corrId.String()] == nil {
+			a.markovReqs[corrId.String()] = make(chan *pb.MarkovResponse)
+		}
+		
 		for {
-			m := <-a.markovReqChan
-			if m.ID != corrId.String() {
-				continue
+			select {
+			case <-ctx.Done(): return
+			case res, ok := <-a.markovReqs[corrId.String()]: {
+				if !ok {
+					return
+				}
+				markovChan <- res
+				close(markovChan)
+				delete(a.markovReqs, corrId.String())
+				return
 			}
-
-			markovChan <- m.Pb
-			close(markovChan)
-			break
+			}
 		}
 	}()
 
@@ -320,7 +325,7 @@ func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []st
 }
 
 func (a *MarkovRoute) pingMarkovGenerator() {
-	zap.S().Debugw("Pinging markov generator")
+	zap.S().Infow("Pinging markov generator")
 
 	url := fmt.Sprintf("%s/health", a.Ctx.Config().Markov.HealthAddress)
 	req, err := http.NewRequestWithContext(a.Ctx, http.MethodGet, url, nil)
@@ -350,5 +355,5 @@ func (a *MarkovRoute) pingMarkovGenerator() {
 	}
 
 	a.isAlive = true
-	zap.S().Debugw("Markov generator is healthy")
+	zap.S().Infow("Markov generator is healthy")
 }

@@ -6,7 +6,8 @@ package proto;
 
 message MarkovRequest {
     repeated string messages = 1;
-    optional string seed = 2;
+    string uuid = 2;
+    optional string seed = 3;
 }
 
 message MarkovResponse {

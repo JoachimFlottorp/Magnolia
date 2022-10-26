@@ -42,7 +42,7 @@ const queue = 'markov-generator';
 		let markov = '';
 		let error: string | undefined = undefined;
 		try {
-			markov = generateMarkov(data.messages, data.seed ?? '');
+			markov = generateMarkov(data.uuid, data.messages, data.seed ?? '');
 		} catch (e) {
 			console.error('Error generating markov', e);
 
@@ -62,7 +62,7 @@ const queue = 'markov-generator';
 const fromProto = (data: Buffer): MarkovRequest => MarkovRequest.decode(data);
 const toProto = (data: MarkovResponse): Buffer => Buffer.from(MarkovResponse.encode(data).finish());
 
-const generateMarkov = (data: string[], seed: string): string => {
+const generateMarkov = (uuid: string, data: string[], seed: string): string => {
 	if (!data.length) return '';
 
 	const m = new Markov({ stateSize: 1 });
