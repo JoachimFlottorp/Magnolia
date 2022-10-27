@@ -178,6 +178,8 @@ func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
 				Status:    res.StatusCode,
 				IP:        fmt.Sprintf("%s (%s)", r.Header.Get("X-Forwarded-For"), r.RemoteAddr),
 				UserAgent: r.UserAgent(),
+				Query:     r.URL.Query().Encode(),
+				Body:      string(apiRes.Data),
 			}
 
 			if !apiRes.Success {

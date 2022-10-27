@@ -18,29 +18,16 @@ var (
 )
 
 type ApiLog struct {
-	// ID is the unique identifier for the log entry.
-	ID primitive.ObjectID `json:"id" bson:"_id"`
-
-	// Timestamp is the time the log entry was created.
-	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
-
-	// Method is the HTTP method used for the request.
-	Method string `json:"method" bson:"method"`
-
-	// Path is the path used for the request.
-	Path string `json:"path" bson:"path"`
-
-	// Status is the HTTP status code returned for the request.
-	Status int `json:"status" bson:"status"`
-
-	// IP is the IP address of the client.
-	IP string `json:"ip" bson:"ip"`
-
-	// UserAgent is the user agent of the client.
-	UserAgent string `json:"user_agent" bson:"user_agent"`
-
-	// Error is the error returned for the request.
-	Error string `json:"error,omitempty" bson:"error"`
+	ID 			primitive.ObjectID `json:"id" bson:"_id"`
+	Timestamp 	time.Time `json:"timestamp" bson:"timestamp"`
+	Method 		string `json:"method" bson:"method"`
+	Path 		string `json:"path" bson:"path"`
+	Status 		int `json:"status" bson:"status"`
+	IP 			string `json:"ip" bson:"ip"`
+	UserAgent 	string `json:"user_agent" bson:"user_agent"`
+	Query 		string `json:"query" bson:"query"`
+	Body 		string `json:"body" bson:"body"`
+	Error 		string `json:"error,omitempty" bson:"error"`
 }
 
 type TwitchChannel struct {
