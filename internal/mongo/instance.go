@@ -51,7 +51,7 @@ func createUrl(cfg *config.Config) string {
 
 func New(ctx context.Context, cfg *config.Config) (Instance, error) {
 	uri := createUrl(cfg)
-	
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
@@ -74,4 +74,3 @@ func (i *mongoInst) Collection(name CollectionName) *mongo.Collection {
 func (i *mongoInst) Ping(ctx context.Context) error {
 	return i.db.Client().Ping(ctx, nil)
 }
-

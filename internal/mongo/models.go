@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/JoachimFlottorp/magnolia/external"
 	"github.com/JoachimFlottorp/magnolia/external/ivr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -12,7 +13,7 @@ import (
 )
 
 var (
-	ErrMissingName = errors.New("missing name")
+	ErrMissingName  = errors.New("missing name")
 	ErrNameNotExist = errors.New("name does not exist")
 )
 
@@ -43,9 +44,9 @@ type ApiLog struct {
 }
 
 type TwitchChannel struct {
-	ID 			primitive.ObjectID 	`json:"id" bson:"_id"`
-	TwitchID 	string 				`json:"twitch_id" bson:"twitch_id"`
-	TwitchName 	string 				`json:"twitch_name" bson:"twitch_name"`
+	ID         primitive.ObjectID `json:"id" bson:"_id"`
+	TwitchID   string             `json:"twitch_id" bson:"twitch_id"`
+	TwitchName string             `json:"twitch_name" bson:"twitch_name"`
 }
 
 func (t *TwitchChannel) GetByName(ctx context.Context, i Instance) error {
@@ -57,8 +58,10 @@ func (t *TwitchChannel) ResolveByIVR(ctx context.Context) error {
 		return ErrMissingName
 	}
 
-	users, err := ivr.ResolveUsernames(ctx, []string{t.TwitchName})
-	if err != nil { return err }
+	users, err := ivr.ResolveUsernames(ctx, external.Client(), []string{t.TwitchName})
+	if err != nil {
+		return err
+	}
 
 	if len(users) == 0 {
 		return ErrNameNotExist
@@ -76,7 +79,7 @@ func (t *TwitchChannel) Save(ctx context.Context, i Instance) error {
 	}
 
 	p := true
-	
+
 	_, err := i.Collection(CollectionTwitch).ReplaceOne(ctx, bson.M{"_id": t.ID}, t, &options.ReplaceOptions{
 		Upsert: &p,
 	})

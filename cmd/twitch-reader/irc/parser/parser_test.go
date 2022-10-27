@@ -7,28 +7,29 @@ func TestCanParsePING(t *testing.T) {
 		line string
 		want *PingMessage
 	}
-	
+
 	testCases := []testT{
 		{
 			line: "PING :tmi.twitch.tv",
 			want: &PingMessage{
-				Raw: "PING :tmi.twitch.tv",
+				Raw:     "PING :tmi.twitch.tv",
 				Message: "tmi.twitch.tv",
 			},
 		},
 		{
 			line: ":tmi.twitch.tv PING :xD",
 			want: &PingMessage{
-				Raw: ":tmi.twitch.tv PING :xD",
+				Raw:     ":tmi.twitch.tv PING :xD",
 				Message: "xD",
 			},
 		},
 	}
 
-
 	for _, testCase := range testCases {
 		got, err := ParseLine(testCase.line)
-		if err != nil { t.Fatalf("ParseLine threw -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw -- %v", err)
+		}
 		pingMsg := got.(*PingMessage)
 
 		if pingMsg.GetType() != PING {
@@ -45,26 +46,26 @@ func TestCanParsePONG(t *testing.T) {
 		line string
 		want *PongMessage
 	}
-	
+
 	testCases := []testT{
 		{
 			line: "PONG :tmi.twitch.tv",
 			want: &PongMessage{
-				Raw: "PONG :tmi.twitch.tv",
+				Raw:     "PONG :tmi.twitch.tv",
 				Message: "",
 			},
 		},
 		{
 			line: ":tmi.twitch.tv PONG tmi.twitch.tv :HI-:D",
 			want: &PongMessage{
-				Raw: ":tmi.twitch.tv PONG tmi.twitch.tv :HI-:D",
+				Raw:     ":tmi.twitch.tv PONG tmi.twitch.tv :HI-:D",
 				Message: "HI-:D",
 			},
 		},
 		{
 			line: ":tmi.twitch.tv PONG tmi.twitch.tv :xD lol",
 			want: &PongMessage{
-				Raw: ":tmi.twitch.tv PONG tmi.twitch.tv :xD lol",
+				Raw:     ":tmi.twitch.tv PONG tmi.twitch.tv :xD lol",
 				Message: "xD",
 			},
 		},
@@ -72,7 +73,9 @@ func TestCanParsePONG(t *testing.T) {
 
 	for _, testCase := range testCases {
 		got, err := ParseLine(testCase.line)
-		if err != nil { t.Fatalf("ParseLine threw -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw -- %v", err)
+		}
 		pongMsg := got.(*PongMessage)
 
 		if pongMsg.GetType() != PONG {
@@ -94,27 +97,27 @@ func TestCanParsePRIVMSG(t *testing.T) {
 		{
 			Line: ":foobar!foobar@foobar.tmi.twitch.tv PRIVMSG #forsen :forsenInsane",
 			Want: &PrivmsgMessage{
-				Raw: ":foobar!foobar@foobar.tmi.twitch.tv PRIVMSG #forsen :forsenInsane",
+				Raw:     ":foobar!foobar@foobar.tmi.twitch.tv PRIVMSG #forsen :forsenInsane",
 				Channel: "forsen",
-				User: "foobar",
+				User:    "foobar",
 				Message: "forsenInsane",
 			},
 		},
 		{
 			Line: ":kkonaaaaaaaaaaa!kkonaaaaaaaaaaa@kkonaaaaaaaaaaa.tmi.twitch.tv PRIVMSG #forsen :REALLY LONG MESSAGE AAAAAAAA",
 			Want: &PrivmsgMessage{
-				Raw: ":kkonaaaaaaaaaaa!kkonaaaaaaaaaaa@kkonaaaaaaaaaaa.tmi.twitch.tv PRIVMSG #forsen :REALLY LONG MESSAGE AAAAAAAA",
+				Raw:     ":kkonaaaaaaaaaaa!kkonaaaaaaaaaaa@kkonaaaaaaaaaaa.tmi.twitch.tv PRIVMSG #forsen :REALLY LONG MESSAGE AAAAAAAA",
 				Channel: "forsen",
-				User: "kkonaaaaaaaaaaa",
+				User:    "kkonaaaaaaaaaaa",
 				Message: "REALLY LONG MESSAGE AAAAAAAA",
 			},
 		},
 		{
 			Line: ":melon095!melon095@melon095.tmi.twitch.tv PRIVMSG #brian6932 :Twitch parser",
 			Want: &PrivmsgMessage{
-				Raw: ":melon095!melon095@melon095.tmi.twitch.tv PRIVMSG #brian6932 :Twitch parser",
+				Raw:     ":melon095!melon095@melon095.tmi.twitch.tv PRIVMSG #brian6932 :Twitch parser",
 				Channel: "brian6932",
-				User: "melon095",
+				User:    "melon095",
 				Message: "Twitch parser",
 			},
 		},
@@ -122,13 +125,15 @@ func TestCanParsePRIVMSG(t *testing.T) {
 
 	for _, test := range tests {
 		got, err := ParseLine(test.Line)
-		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw an error -- %v", err)
+		}
 		privMsg := got.(*PrivmsgMessage)
 
 		if privMsg.GetType() != PRIVMSG {
 			t.Errorf("got %v, want %v", got, test.Want)
 		}
-		
+
 		assertEqual(t, privMsg.Raw, test.Want.Raw)
 		assertEqual(t, privMsg.Channel, test.Want.Channel)
 		assertEqual(t, privMsg.User, test.Want.User)
@@ -143,7 +148,9 @@ func TestCanParseReconnect(t *testing.T) {
 	}
 
 	got, err := ParseLine(line)
-	if err != nil { t.Fatalf("ParseLine threw -- %v", err) }
+	if err != nil {
+		t.Fatalf("ParseLine threw -- %v", err)
+	}
 	reconnectMsg := got.(*ReconnectMessage)
 
 	if reconnectMsg.GetType() != want.GetType() {
@@ -161,13 +168,15 @@ func TestUnknownCommand(t *testing.T) {
 
 	for _, testCase := range testCases {
 		msg, err := ParseLine(testCase)
-		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw an error -- %v", err)
+		}
 		rawMsg := msg.(*RawMessage)
 
 		if rawMsg.Raw != testCase {
 			t.Errorf("got %v, want %v", rawMsg.Raw, testCase)
 		}
-		
+
 		if rawMsg.GetType() != UNSURE {
 			t.Errorf("got %v, want %v", rawMsg.GetType(), UNSURE)
 		}
@@ -183,9 +192,9 @@ func TestParseMotd(t *testing.T) {
 	tests := []testType{
 		{
 			Line: ":tmi.twitch.tv 376 foobar :>",
-			Want: &EndOfMotdMessage {
-				Raw: ":tmi.twitch.tv 376 foobar :>",
-				User: "foobar",
+			Want: &EndOfMotdMessage{
+				Raw:     ":tmi.twitch.tv 376 foobar :>",
+				User:    "foobar",
 				Message: ">",
 			},
 		},
@@ -193,13 +202,15 @@ func TestParseMotd(t *testing.T) {
 
 	for _, test := range tests {
 		got, err := ParseLine(test.Line)
-		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw an error -- %v", err)
+		}
 		motdMsg := got.(*EndOfMotdMessage)
 
 		if motdMsg.GetType() != ENDOFMOTD {
 			t.Errorf("got %v, want %v", got, test.Want)
 		}
-		
+
 		assertEqual(t, motdMsg.Raw, test.Want.Raw)
 		assertEqual(t, motdMsg.User, test.Want.User)
 		assertEqual(t, motdMsg.Message, test.Want.Message)
@@ -215,16 +226,16 @@ func TestParseNotice(t *testing.T) {
 	tests := []testType{
 		{
 			Line: ":tmi.twitch.tv NOTICE #forsen :Login unsuccessful",
-			Want: &NoticeMessage {
-				Raw: ":tmi.twitch.tv NOTICE #forsen :Login unsuccessful",
+			Want: &NoticeMessage{
+				Raw:     ":tmi.twitch.tv NOTICE #forsen :Login unsuccessful",
 				Channel: "forsen",
 				Message: "Login unsuccessful",
 			},
 		},
 		{
 			Line: ":tmi.twitch.tv NOTICE * :Login authentication failed",
-			Want: &NoticeMessage {
-				Raw: ":tmi.twitch.tv NOTICE * :Login authentication failed",
+			Want: &NoticeMessage{
+				Raw:     ":tmi.twitch.tv NOTICE * :Login authentication failed",
 				Channel: "*",
 				Message: "Login authentication failed",
 			},
@@ -233,13 +244,15 @@ func TestParseNotice(t *testing.T) {
 
 	for _, test := range tests {
 		got, err := ParseLine(test.Line)
-		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw an error -- %v", err)
+		}
 		noticeMsg := got.(*NoticeMessage)
 
 		if noticeMsg.GetType() != NOTICE {
 			t.Errorf("got %v, want %v", got, test.Want)
 		}
-		
+
 		assertEqual(t, noticeMsg.Raw, test.Want.Raw)
 		assertEqual(t, noticeMsg.Channel, test.Want.Channel)
 		assertEqual(t, noticeMsg.Message, test.Want.Message)
@@ -255,17 +268,17 @@ func TestParseJoin(t *testing.T) {
 	tests := []testType{
 		{
 			Line: ":justinfan123!justinfan123@justinfan123.tmi.twitch.tv JOIN #pajlada",
-			Want: &JoinMessage {
-				Raw: ":justinfan123!justinfan123@justinfan123.tmi.twitch.tv JOIN #pajlada",
-				User: "justinfan123",
+			Want: &JoinMessage{
+				Raw:     ":justinfan123!justinfan123@justinfan123.tmi.twitch.tv JOIN #pajlada",
+				User:    "justinfan123",
 				Channel: "pajlada",
 			},
 		},
 		{
 			Line: ":forsen!forsen@forsen.tmi.twitch.tv JOIN #forsen",
-			Want: &JoinMessage {
-				Raw: ":forsen!forsen@forsen.tmi.twitch.tv JOIN #forsen",
-				User: "forsen",
+			Want: &JoinMessage{
+				Raw:     ":forsen!forsen@forsen.tmi.twitch.tv JOIN #forsen",
+				User:    "forsen",
 				Channel: "forsen",
 			},
 		},
@@ -273,13 +286,15 @@ func TestParseJoin(t *testing.T) {
 
 	for _, test := range tests {
 		got, err := ParseLine(test.Line)
-		if err != nil { t.Fatalf("ParseLine threw an error -- %v", err) }
+		if err != nil {
+			t.Fatalf("ParseLine threw an error -- %v", err)
+		}
 		joinMsg := got.(*JoinMessage)
 
 		if joinMsg.GetType() != JOIN {
 			t.Errorf("got %v, want %v", got, test.Want)
 		}
-		
+
 		assertEqual(t, joinMsg.Raw, test.Want.Raw)
 		assertEqual(t, joinMsg.User, test.Want.User)
 		assertEqual(t, joinMsg.Channel, test.Want.Channel)

@@ -15,7 +15,7 @@ var (
 type rabbitmqInstance struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
-	isOpen 	chan *amqp.Error
+	isOpen  chan *amqp.Error
 }
 
 func New(ctx context.Context, opts *NewInstanceSettings) (Instance, error) {
@@ -97,9 +97,10 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 		Name: opts.Queue,
 	})
 
-	if err != nil { return nil, err }
-	
-	
+	if err != nil {
+		return nil, err
+	}
+
 	msgs, err := r.channel.Consume(
 		opts.Queue.String(),
 		opts.Consumer,
@@ -110,7 +111,9 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 		nil,
 	)
 
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	out := make(chan *amqp.Delivery, 50)
 
@@ -124,24 +127,25 @@ func (r *rabbitmqInstance) Consume(ctx context.Context, opts ConsumeSettings) (c
 				zap.S().Warn("RabbitMQ connection closed")
 				close(out)
 				return
-			case msg, ok := <-msgs: {
-				if !ok {
-					zap.S().Errorw("Channel is not ok", "queue", opts.Queue)
-					close(out)
-					return
+			case msg, ok := <-msgs:
+				{
+					if !ok {
+						zap.S().Errorw("Channel is not ok", "queue", opts.Queue)
+						close(out)
+						return
+					}
+
+					// TODO figure out a way to automatically
+					// serialize the message from json or protobuf to a struct
+					// Automatically if this is even possible.
+
+					out <- &msg
+
+					msg.Ack(false)
 				}
-
-				// TODO figure out a way to automatically 
-				// serialize the message from json or protobuf to a struct
-				// Automatically if this is even possible.
-
-				out <- &msg
-
-				msg.Ack(false)
-			}
 			}
 		}
 	}()
 
-	return out, nil	
+	return out, nil
 }

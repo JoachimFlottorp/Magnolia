@@ -8,18 +8,18 @@ import (
 )
 
 type errorResponse struct {
-	statusCode 	int
-	err       	string
-	headers   	map[string]string
-	id			uuid.UUID
+	statusCode int
+	err        string
+	headers    map[string]string
+	id         uuid.UUID
 }
 
 func Error() ErrorResponseBuilder {
 	return &errorResponse{
 		statusCode: 500,
 		headers:    make(map[string]string),
-		err:		http.StatusText(http.StatusInternalServerError),
-		id: 		uuid.New(),
+		err:        http.StatusText(http.StatusInternalServerError),
+		id:         uuid.New(),
 	}
 }
 
@@ -57,7 +57,7 @@ func (b *errorResponse) Build() RouterResponse {
 		StatusCode: b.statusCode,
 		Headers:    b.headers,
 		Error:      errors.New(b.err),
-		UUID: 		b.id,
+		UUID:       b.id,
 	}
 }
 

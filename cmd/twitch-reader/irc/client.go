@@ -15,10 +15,10 @@ type IrcConnection struct {
 	User     string
 	Password string
 
-	Read 		chan string
-	RecvPong 	chan bool
-	MsgHasRecv 	chan bool
-	isReady 	chan bool
+	Read       chan string
+	RecvPong   chan bool
+	MsgHasRecv chan bool
+	isReady    chan bool
 
 	Conn *websocket.Conn
 	Mtx  sync.Mutex
@@ -30,13 +30,13 @@ type IrcConnection struct {
 
 func NewClient(username, password string) *IrcConnection {
 	c := &IrcConnection{
-		Address: CONNECTION_ADDRESS,
+		Address:  CONNECTION_ADDRESS,
 		User:     username,
 		Password: password,
 
-		Read: 		make(chan string),
+		Read:       make(chan string),
 		MsgHasRecv: make(chan bool),
-		RecvPong: 	make(chan bool),
+		RecvPong:   make(chan bool),
 
 		Mtx: sync.Mutex{},
 
@@ -52,11 +52,13 @@ func (c *IrcConnection) OnMessage(cb func(msg *parser.PrivmsgMessage)) {
 
 func (c *IrcConnection) Connect() error {
 	conn, _, err := websocket.DefaultDialer.Dial(c.Address, nil)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	c.Conn = conn
-	c.isReady =	make(chan bool)
-	
+	c.isReady = make(chan bool)
+
 	wg := sync.WaitGroup{}
 
 	go c.handlePong(&wg)
@@ -73,7 +75,7 @@ func (c *IrcConnection) Connect() error {
 	c.Send("NICK " + c.User)
 
 	<-c.isReady
-	
+
 	return nil
 }
 
@@ -86,17 +88,21 @@ func (c *IrcConnection) Reconnect() {
 func (c *IrcConnection) handlePong(wg *sync.WaitGroup) {
 	for {
 		select {
-		case <-c.MsgHasRecv: continue
-		case <-time.After(4 * time.Minute): {
-			c.Send("PING : HI-:D")
+		case <-c.MsgHasRecv:
+			continue
+		case <-time.After(4 * time.Minute):
+			{
+				c.Send("PING : HI-:D")
 
-			select {
-			case <-c.RecvPong: continue
-			case <-time.After(10 * time.Second): {
-				zap.S().Errorw("Failed to receive pong from server")
+				select {
+				case <-c.RecvPong:
+					continue
+				case <-time.After(10 * time.Second):
+					{
+						zap.S().Errorw("Failed to receive pong from server")
+					}
+				}
 			}
-			}
-		}
 		}
 	}
 }
@@ -105,7 +111,7 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 	defer func() {
 		c.Conn.Close()
 	}()
-	
+
 	for {
 		msgType, msg, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -115,6 +121,10 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 				zap.S().Errorw("Failed to read message from server", "error", err)
 			}
 			return
+
+			/*
+				TODO: Stuck forever if theres an error before MOTD
+			*/
 		}
 
 		if msgType != websocket.TextMessage {
@@ -136,7 +146,7 @@ func (c *IrcConnection) handleLine(line string) {
 		default:
 		}
 	}()
-	
+
 	parsed, err := parser.ParseLine(line)
 	if err != nil {
 		zap.S().Errorw("Failed to parse line", "error", err)
@@ -144,53 +154,64 @@ func (c *IrcConnection) handleLine(line string) {
 	}
 
 	switch parsed.GetType() {
-	case parser.PONG: {
-		select {
-		case c.RecvPong <- true:
-		default:
+	case parser.PONG:
+		{
+			select {
+			case c.RecvPong <- true:
+			default:
+			}
 		}
-	}
-	case parser.RECONNECT: {
-		zap.S().Infow("Twitch told us to reconnect")
-		c.Reconnect()
-	}
-	case parser.PING: {
-		c.Send("PONG : HI-:D")
-	}
-	case parser.PRIVMSG: {
-		msg := parsed.(*parser.PrivmsgMessage)
-		if c.MessageSubscriber == nil { return }
-
-		c.MessageSubscriber(msg)
-	}
-	case parser.ENDOFMOTD: {
-		zap.S().Infow("Connected to server")
-		c.isReady <- true
-	}
-	case parser.NOTICE: {
-		msg := parsed.(*parser.NoticeMessage)
-
-		if strings.HasPrefix(msg.Message, "Login authentication failed") {
-			zap.S().Errorw("Failed to authenticate with server")
+	case parser.RECONNECT:
+		{
+			zap.S().Infow("Twitch told us to reconnect")
+			c.Reconnect()
 		}
-	}
-	case parser.JOIN: {
-		msg := parsed.(*parser.JoinMessage)
-
-		if msg.User != c.User {
-			return
+	case parser.PING:
+		{
+			c.Send("PONG : HI-:D")
 		}
+	case parser.PRIVMSG:
+		{
+			msg := parsed.(*parser.PrivmsgMessage)
+			if c.MessageSubscriber == nil {
+				return
+			}
 
-		zap.S().Infow("Joined channel", "channel", msg.Channel)
-		c.ConnectedChannels = append(c.ConnectedChannels, msg.Channel)
-	}
+			c.MessageSubscriber(msg)
+		}
+	case parser.ENDOFMOTD:
+		{
+			zap.S().Infow("Connected to server")
+			c.isReady <- true
+		}
+	case parser.NOTICE:
+		{
+			msg := parsed.(*parser.NoticeMessage)
+
+			if strings.HasPrefix(msg.Message, "Login authentication failed") {
+				zap.S().Errorw("Failed to authenticate with server")
+			}
+		}
+	case parser.JOIN:
+		{
+			msg := parsed.(*parser.JoinMessage)
+
+			if msg.User != c.User {
+				return
+			}
+
+			zap.S().Infow("Joined channel", "channel", msg.Channel)
+			c.ConnectedChannels = append(c.ConnectedChannels, msg.Channel)
+		}
 	}
 
 }
 
 func (c *IrcConnection) Join(channel string) {
-	if channel == "" { return }
-	
+	if channel == "" {
+		return
+	}
+
 	c.Send("JOIN #" + channel)
 }
 
@@ -199,7 +220,7 @@ func (c *IrcConnection) Send(msg string) {
 	defer c.Mtx.Unlock()
 
 	zap.S().Debugw("Sending message", "message", msg)
-	
+
 	err := c.Conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {
 		zap.S().Errorw("Failed to send message to server", "error", err)

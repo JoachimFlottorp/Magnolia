@@ -27,11 +27,11 @@ import (
 )
 
 var (
-	cfg 	= flag.String("config", "config.json", "Path to the config file")
-	debug 	= flag.Bool("debug", false, "Enable debug logging")
+	cfg    	= flag.String("config", "config.json", "Path to the config file")
+	debug  	= flag.Bool("debug", false, "Enable debug logging")
 	maxMsg 	= flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
-
-	botIgnoreList = regexp.MustCompile("(supibot|thepositivebot|ksyncbot|dontaddthisbot|streamelements|botnextdoor|botbear|streamlabs|nightbot)")
+	
+	botIgnoreList = regexp.MustCompile(`bo?t{1,2}(?:(?:ard)?o|\d|_)*$|^(?:fembajs|veryhag|scriptorex|apulxd|qdc26534|linestats|pepegaboat|sierrapine|charlestonbieber|icecreamdatabase|chatvote|localaniki|rewardmore|gorenmu|0weebs|befriendlier|electricbodybuilder|o?bot(?:bear1{3}0|2465|menti|e|nextdoor)|stream(?:elements|labs))$`)
 )
 
 func init() {
@@ -58,7 +58,7 @@ func main() {
 	defer func() {
 		err := cfgFile.Close()
 		zap.S().Warnw("Failed to close config file", "error", err)
-	}();
+	}()
 
 	conf := &config.Config{}
 	err = json.NewDecoder(cfgFile).Decode(conf)
@@ -68,17 +68,17 @@ func main() {
 
 	doneSig := make(chan os.Signal, 1)
 	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
-	
+
 	gCtx, cancel := ctx.WithCancel(ctx.New(context.Background(), conf))
 
 	ircMan := irc.NewManager(gCtx)
 
 	{
 		gCtx.Inst().Redis, err = redis.Create(gCtx, redis.Options{
-			Address: conf.Redis.Address,
+			Address:  conf.Redis.Address,
 			Username: conf.Redis.Username,
 			Password: conf.Redis.Password,
-			DB: conf.Redis.Database,
+			DB:       conf.Redis.Database,
 		})
 
 		if err != nil {
@@ -98,7 +98,7 @@ func main() {
 		gCtx.Inst().RMQ, err = rabbitmq.New(gCtx, &rabbitmq.NewInstanceSettings{
 			Address: gCtx.Config().RabbitMQ.URI,
 		})
-		
+
 		if err != nil {
 			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
 		}
@@ -110,7 +110,7 @@ func main() {
 		}
 
 		go func() {
-			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings {
+			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
 				Queue: rabbitmq.QueueJoinRequest,
 			})
 			if err != nil {
@@ -127,7 +127,7 @@ func main() {
 						zap.S().Fatalw("Failed to unmarshal rabbitmq message", "error", err)
 						continue
 					}
-	
+
 					onJoinRequest(gCtx, ircMan, req)
 				}
 			}
@@ -157,7 +157,7 @@ func main() {
 		zap.S().Info("Shutdown complete")
 		close(done)
 	}()
-	
+
 	wg.Add(1)
 
 	go func() {
@@ -170,11 +170,13 @@ func main() {
 
 		for {
 			select {
-				case <-gCtx.Done(): return
-				case msg := <-ircMan.MessageQueue: {
-					key 	:= fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
-					data 	:= msg.Message
-					user 	:= msg.User
+			case <-gCtx.Done():
+				return
+			case msg := <-ircMan.MessageQueue:
+				{
+					key := fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
+					data := msg.Message
+					user := msg.User
 					if botIgnoreList.MatchString(user) {
 						continue
 					}
@@ -200,6 +202,14 @@ func main() {
 		}
 	}()
 
+	// wg.Add(1)
+	
+	// go func() {
+	// 	defer wg.Done()
+
+	// 	queryUpdateBotList(gCtx)
+	// }()
+
 	zap.S().Info("Ready!")
 
 	<-done
@@ -211,7 +221,7 @@ func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq)
 	if req.Channel == "" {
 		return
 	}
-	
+
 	channel := mongo.TwitchChannel{
 		TwitchName: req.Channel,
 	}
@@ -227,3 +237,33 @@ func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq)
 
 	irc.JoinChannel(channel)
 }
+
+// func queryUpdateBotList(ctx context.Context) {
+// 	for {
+// 		select {
+// 		case <-ctx.Done(): return
+// 		case <-time.After(1 * time.Minute): {
+// 			botList, err := supibot.GetBotList(ctx, external.Client())
+
+// 			if err != nil {
+// 				zap.S().Errorw("Failed to update bot list", "error", err)
+// 				continue
+// 			}
+
+// 			var newList []string
+// 			for _, bot := range botList.Data.Bots {
+// 				newList = append(newList, bot.Name)
+// 			}
+
+// 			newList = append(newList, ignoreBots...)
+// 			updateBotList(newList)
+
+// 			zap.S().Debugw("Updated bot list", "count", len(newList), "list", botIgnoreList.String())
+// 		}
+// 		}
+// 	}
+// }
+
+// func updateBotList(bots []string) {
+// 	botIgnoreList = regexp.MustCompile(fmt.Sprintf("(%s)", strings.Join(bots, "|")))
+// }

@@ -11,20 +11,20 @@ import (
 
 // Implements RouterResponseBuilder
 type okResponseBuilder struct {
-	statusCode 	int
-	body 		json.RawMessage
-	headers    	map[string]string
-	isJson     	bool
-	id			uuid.UUID
+	statusCode int
+	body       json.RawMessage
+	headers    map[string]string
+	isJson     bool
+	id         uuid.UUID
 }
 
 func OkResponse() RouterResponseBuilder {
 	return &okResponseBuilder{
 		statusCode: 200,
 		headers:    make(map[string]string),
-		body: 	 	nil,
-		isJson: 	false,
-		id: 		uuid.New(),
+		body:       nil,
+		isJson:     false,
+		id:         uuid.New(),
 	}
 }
 
@@ -68,11 +68,11 @@ func (b *okResponseBuilder) Build() RouterResponse {
 	if b.body == nil {
 		b.body = json.RawMessage(http.StatusText(b.statusCode))
 	}
-	
-	return RouterResponse {
+
+	return RouterResponse{
 		StatusCode: b.statusCode,
 		Headers:    b.headers,
-		Body: 	 	b.body,
-		UUID: 		b.id,
+		Body:       b.body,
+		UUID:       b.id,
 	}
 }

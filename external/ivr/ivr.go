@@ -70,9 +70,11 @@ type Panels struct {
 	ID string `json:"id"`
 }
 
-func ResolveUsernames(ctx context.Context, usernames []string) ([]*ResolveUser_t, error) {
+func ResolveUsernames(ctx context.Context, client *http.Client, usernames []string) ([]*ResolveUser_t, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", BASE_URL+"twitch/user", nil)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	q := req.URL.Query()
 	for _, username := range usernames {
@@ -80,14 +82,18 @@ func ResolveUsernames(ctx context.Context, usernames []string) ([]*ResolveUser_t
 	}
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil { return nil, err }
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
 	defer resp.Body.Close()
-	
+
 	var data []*ResolveUser_t
 	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		zap.S().Errorf("[IVR] Error twitch/user: %s", data)

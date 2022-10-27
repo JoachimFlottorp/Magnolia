@@ -23,7 +23,7 @@ func Create(ctx context.Context, options Options) (Instance, error) {
 	if err := rds.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-	
+
 	inst := &redisInstance{
 		client: rds,
 	}
@@ -77,7 +77,7 @@ func (r *redisInstance) GetAllList(ctx context.Context, key string) ([]string, e
 	if len(a) == 0 {
 		return nil, redis.Nil
 	}
-	
+
 	return a, e
 }
 

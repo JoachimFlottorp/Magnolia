@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	ErrNoData 			= "no data"
-	ErrTooLong 			= "took to long to generate markov chain"
+	ErrNoData           = "no data"
+	ErrTooLong          = "took to long to generate markov chain"
 	ErrUnableToGenerate = "unable to generate markov chain"
 
 	ValidChannel = regexp.MustCompile(`^[a-zA-Z0-9_]{4,25}$`)
@@ -53,7 +53,7 @@ type MarkovGetParams struct {
 	// description: Generate a markov chain based on a custom seed
 	// required: false
 	// type: string
-	Seed 	string `json:"seed"`
+	Seed string `json:"seed"`
 }
 
 type MarkovRoute struct {
@@ -74,7 +74,7 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 	}
 
 	a := &MarkovRoute{
-		Ctx: gCtx,
+		Ctx:        gCtx,
 		markovReqs: make(map[string]chan *pb.MarkovResponse),
 	}
 
@@ -84,42 +84,44 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 	go func() {
 		for {
 			select {
-			case <-a.Ctx.Done(): {
-				return
-			}
-			case <-time.After(1 * time.Minute): {
-				a.pingMarkovGenerator()
-			}
+			case <-a.Ctx.Done():
+				{
+					return
+				}
+			case <-time.After(1 * time.Minute):
+				{
+					a.pingMarkovGenerator()
+				}
 			}
 		}
-	}()	
+	}()
 
 	return a
 }
 
 func (a *MarkovRoute) Configure() router.RouteConfig {
 	return router.RouteConfig{
-		URI: "/markov",
-		Method: []string{http.MethodGet},
-		Children: []router.Route{},
+		URI:        "/markov",
+		Method:     []string{http.MethodGet},
+		Children:   []router.Route{},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }
 
 // swagger:route GET /api/markov markov markovGet
-// 
+//
 // Generate a markov chain based on a channel
-// 
+//
 //			Responses:
 //				200: MarkovResponse
 func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
 	var channel string
-	var seed 	string
-	
+	var seed string
+
 	channel = r.URL.Query().Get("channel")
 	key := fmt.Sprintf("twitch:%s:chat-data", channel)
 	u := uuid.New()
-	
+
 	if channel == "" {
 		return response.
 			Error().
@@ -140,13 +142,13 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 	if err != nil {
 		if err != redis.Nil {
 			zap.S().Errorf("Failed to get channel data from redis: %s", err)
-		
+
 			return response.
 				Error().
 				InternalServerError().
 				Build()
 		}
-		
+
 		req := pb.SubChannelReq{
 			Channel: channel,
 		}
@@ -154,17 +156,17 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 		reqByte, err := proto.Marshal(&req)
 		if err != nil {
 			zap.S().Errorw("Failed to marshal protobuf message", "error", err)
-			
+
 			return response.
 				Error().
 				InternalServerError().
 				Build()
 		}
-		
+
 		err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
 			RoutingKey: rabbitmq.QueueJoinRequest,
 			Msg: amqp091.Publishing{
-				Body: reqByte,
+				Body:        reqByte,
 				ContentType: "application/protobuf; twitch.SubChannelReq",
 			},
 		})
@@ -177,7 +179,7 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 				InternalServerError("Chat logger not available").
 				Build()
 		}
-		
+
 		return response.
 			Error().
 			NotFound(ErrNoData).
@@ -225,16 +227,16 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 				SetCustomReqID(u).
 				Build()
 		}
-		
+
 		return response.
 			Error().
 			InternalServerError().
 			SetCustomReqID(u).
 			Build()
 	}
-	
+
 	return response.OkResponse().
-		SetJSON(MarkovResponse{ Markov: result.Result }).
+		SetJSON(MarkovResponse{Markov: result.Result}).
 		Build()
 
 }
@@ -243,43 +245,45 @@ func (a *MarkovRoute) handleMarkovRequests() {
 	msg, err := a.Ctx.Inst().RMQ.Consume(a.Ctx, rabbitmq.ConsumeSettings{
 		Queue: rabbitmq.QueueMarkovGenenerator,
 	})
-	
+
 	if err != nil {
 		zap.S().Errorw("Failed to consume from RabbitMQ", "error", err)
 		return
 	}
-	
+
 	for {
 		select {
-		case m := <-msg: {
-			var res pb.MarkovResponse
-			err := proto.Unmarshal(m.Body, &res)
-			if res.Error != nil {
-				zap.S().Errorw("Failed to generate markov chain", "error", res.Error)
-			}
-			if err != nil {
-				zap.S().Errorw("Failed to unmarshal protobuf message", "error", err)
-				continue
-			}
+		case m := <-msg:
+			{
+				var res pb.MarkovResponse
+				err := proto.Unmarshal(m.Body, &res)
+				if res.Error != nil {
+					zap.S().Errorw("Failed to generate markov chain", "error", res.Error)
+				}
+				if err != nil {
+					zap.S().Errorw("Failed to unmarshal protobuf message", "error", err)
+					continue
+				}
 
-			zap.S().Debugf("Generated markov chain: %s", res.Result)
+				zap.S().Debugf("Generated markov chain: %s", res.Result)
 
-			if ch, ok := a.markovReqs[m.CorrelationId]; ok {
-				ch <- &res
-				close(ch)
-				delete(a.markovReqs, m.CorrelationId)
-			} else {
-				a.markovReqs[m.CorrelationId] = make(chan *pb.MarkovResponse)
-				a.markovReqs[m.CorrelationId] <- &res
+				if ch, ok := a.markovReqs[m.CorrelationId]; ok {
+					ch <- &res
+					close(ch)
+					delete(a.markovReqs, m.CorrelationId)
+				} else {
+					a.markovReqs[m.CorrelationId] = make(chan *pb.MarkovResponse)
+					a.markovReqs[m.CorrelationId] <- &res
+				}
 			}
-		}
-		case <-a.Ctx.Done(): return
+		case <-a.Ctx.Done():
+			return
 		}
 	}
 }
 
 func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []string, seed string) (chan *pb.MarkovResponse, error) {
-	p := pb.MarkovRequest {
+	p := pb.MarkovRequest{
 		Messages: data,
 	}
 
@@ -288,13 +292,15 @@ func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []st
 	}
 
 	reqByte, err := proto.Marshal(&p)
-	if err != nil { return nil, err }
-	
+	if err != nil {
+		return nil, err
+	}
+
 	_ = a.Ctx.Inst().RMQ.Publish(ctx, rabbitmq.PublishSettings{
 		RoutingKey: rabbitmq.QueueMarkovGenenerator,
 		Msg: amqp091.Publishing{
 			CorrelationId: corrId.String(),
-			Body: reqByte,
+			Body:          reqByte,
 		},
 	})
 
@@ -304,19 +310,21 @@ func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []st
 		if a.markovReqs[corrId.String()] == nil {
 			a.markovReqs[corrId.String()] = make(chan *pb.MarkovResponse)
 		}
-		
+
 		for {
 			select {
-			case <-ctx.Done(): return
-			case res, ok := <-a.markovReqs[corrId.String()]: {
-				if !ok {
+			case <-ctx.Done():
+				return
+			case res, ok := <-a.markovReqs[corrId.String()]:
+				{
+					if !ok {
+						return
+					}
+					markovChan <- res
+					close(markovChan)
+					delete(a.markovReqs, corrId.String())
 					return
 				}
-				markovChan <- res
-				close(markovChan)
-				delete(a.markovReqs, corrId.String())
-				return
-			}
 			}
 		}
 	}()
@@ -333,7 +341,7 @@ func (a *MarkovRoute) pingMarkovGenerator() {
 		zap.S().Errorw("Failed to create health check request", "error", err)
 
 		a.isAlive = false
-		
+
 		return
 	}
 
@@ -342,7 +350,7 @@ func (a *MarkovRoute) pingMarkovGenerator() {
 		zap.S().Errorw("Failed to execute health check request", "error", err)
 
 		a.isAlive = false
-		
+
 		return
 	}
 
@@ -350,7 +358,7 @@ func (a *MarkovRoute) pingMarkovGenerator() {
 		zap.S().Errorw("Markov generator is not healthy", "status", resp.StatusCode)
 
 		a.isAlive = false
-		
+
 		return
 	}
 

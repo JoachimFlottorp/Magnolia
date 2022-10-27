@@ -36,7 +36,7 @@ type Instance interface {
 	LLen(context.Context, string) (int64, error)
 
 	GetAllList(context.Context, string) ([]string, error)
-	
+
 	// Prefix returns the prefix used for all keys
 	Prefix() string
 

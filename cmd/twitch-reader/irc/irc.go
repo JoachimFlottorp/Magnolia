@@ -11,45 +11,47 @@ import (
 )
 
 const (
-	CONNECTION_ADDRESS 	= "wss://irc-ws.chat.twitch.tv:443"
-	DEFAULT_USERNAME 	= "justinfan123"
-	DEFAULT_PASSWORD 	= "XDDDDDD"
+	CONNECTION_ADDRESS = "wss://irc-ws.chat.twitch.tv:443"
+	DEFAULT_USERNAME   = "justinfan123"
+	DEFAULT_PASSWORD   = "XDDDDDD"
 
 	MAX_CHANNELS_PER_CONN = 100
 )
 
 type IrcManager struct {
 	ctx ctx.Context
-	
-	conns	[]*IrcConnection
-	mtx  	sync.Mutex
 
-	joinQueue 		chan string
-	MessageQueue 	chan *parser.PrivmsgMessage
+	conns []*IrcConnection
+	mtx   sync.Mutex
+
+	joinQueue    chan string
+	MessageQueue chan *parser.PrivmsgMessage
 }
 
 func NewManager(gCtx ctx.Context) *IrcManager {
 	m := &IrcManager{
-		ctx: gCtx,
-		conns: make([]*IrcConnection, 0),
-		mtx: sync.Mutex{},
-		joinQueue: make(chan string),
+		ctx:          gCtx,
+		conns:        make([]*IrcConnection, 0),
+		mtx:          sync.Mutex{},
+		joinQueue:    make(chan string),
 		MessageQueue: make(chan *parser.PrivmsgMessage),
 	}
 
 	go func() {
 		for {
 			select {
-			case <-gCtx.Done(): return
-			case channel := <-m.joinQueue: {
-				conn, err := m.availableConnector()
-				if err != nil { 
-					zap.S().Errorw("Failed to join channel", "channel", channel, "error", err)
-					continue
+			case <-gCtx.Done():
+				return
+			case channel := <-m.joinQueue:
+				{
+					conn, err := m.availableConnector()
+					if err != nil {
+						zap.S().Errorw("Failed to join channel", "channel", channel, "error", err)
+						continue
+					}
+
+					conn.Join(channel)
 				}
-		
-				conn.Join(channel)
-			}
 			}
 		}
 	}()
@@ -59,20 +61,24 @@ func NewManager(gCtx ctx.Context) *IrcManager {
 
 func (m *IrcManager) ConnectAllFromDatabase() error {
 	cursor, err := m.ctx.Inst().Mongo.Collection(mongo.CollectionTwitch).Find(m.ctx, bson.D{})
-	if err != nil { 
+	if err != nil {
 		return err
-	 }
+	}
 
 	channels := []mongo.TwitchChannel{}
-	if err := cursor.All(m.ctx, &channels); err != nil { return err }
+	if err := cursor.All(m.ctx, &channels); err != nil {
+		return err
+	}
 
 	for _, channel := range channels {
 		conn, err := m.availableConnector()
-		if err != nil { return err }
+		if err != nil {
+			return err
+		}
 
 		conn.Join(channel.TwitchName)
 	}
-	
+
 	return nil
 }
 
@@ -95,7 +101,7 @@ func (m *IrcManager) createNewConnector() (*IrcConnection, error) {
 	conn.OnMessage(func(msg *parser.PrivmsgMessage) {
 		m.MessageQueue <- msg
 	})
-	
+
 	m.conns = append(m.conns, conn)
 
 	return conn, conn.Connect()

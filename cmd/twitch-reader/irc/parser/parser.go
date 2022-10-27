@@ -37,7 +37,7 @@ func ParseLine(line string) (Message, error) {
 
 	m.Command = split[idx]
 	idx++
-	
+
 	for idx < len(split) {
 		if strings.HasPrefix(split[idx], ":") {
 			m.Params = append(m.Params, strings.Join(split[idx:], " ")[1:])
@@ -49,33 +49,41 @@ func ParseLine(line string) (Message, error) {
 	}
 
 	switch m.Command {
-	case "376": {
-		return parseMotd(m), nil
-	}
-	case "NOTICE": {
-		return parseNotice(m), nil
-	}
-	case "PING": {
-		return parsePing(&m), nil
-	}
-	case "PONG": {
-		return parsePong(&m), nil
-	}
-	case "PRIVMSG": {
-		return parsePrivmsg(&m), nil
-	}
-	case "RECONNECT": {
-		return parseReconnect(&m), nil
-	}
-	case "JOIN": {
-		return parseJoin(m), nil
-	}
-	default: {
-		return &RawMessage{
-			Raw:     m.Raw,
-			Type:    UNSURE,
-		}, nil
-	}
+	case "376":
+		{
+			return parseMotd(m), nil
+		}
+	case "NOTICE":
+		{
+			return parseNotice(m), nil
+		}
+	case "PING":
+		{
+			return parsePing(&m), nil
+		}
+	case "PONG":
+		{
+			return parsePong(&m), nil
+		}
+	case "PRIVMSG":
+		{
+			return parsePrivmsg(&m), nil
+		}
+	case "RECONNECT":
+		{
+			return parseReconnect(&m), nil
+		}
+	case "JOIN":
+		{
+			return parseJoin(m), nil
+		}
+	default:
+		{
+			return &RawMessage{
+				Raw:  m.Raw,
+				Type: UNSURE,
+			}, nil
+		}
 	}
 }
 
@@ -105,11 +113,11 @@ func parsePing(m *ircMessage) *PingMessage {
 	p := &PingMessage{
 		Raw: m.Raw,
 	}
-	
+
 	if len(m.Params) == 1 {
 		p.Message = strings.Split(m.Params[0], " ")[0]
 	}
-	
+
 	return p
 }
 
@@ -117,7 +125,7 @@ func parsePong(m *ircMessage) *PongMessage {
 	p := &PongMessage{
 		Raw: m.Raw,
 	}
-	
+
 	if len(m.Params) == 2 {
 		p.Message = strings.Split(m.Params[1], " ")[0]
 	}
@@ -142,8 +150,8 @@ func parseReconnect(m *ircMessage) *ReconnectMessage {
 
 func parseMotd(m ircMessage) *EndOfMotdMessage {
 	return &EndOfMotdMessage{
-		Raw: m.Raw,
-		User: sanitizeChannel(m.Params[0]),
+		Raw:     m.Raw,
+		User:    sanitizeChannel(m.Params[0]),
 		Message: m.Params[1],
 	}
 }

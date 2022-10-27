@@ -24,13 +24,13 @@ import (
 )
 
 var (
-	cfg 	= flag.String("config", "config.json", "Path to the config file")
-	debug 	= flag.Bool("debug", false, "Enable debug logging")
+	cfg   = flag.String("config", "config.json", "Path to the config file")
+	debug = flag.Bool("debug", false, "Enable debug logging")
 )
 
 func init() {
 	flag.Parse()
-	
+
 	if *debug {
 		b, _ := zap.NewDevelopmentConfig().Build()
 		zap.ReplaceGlobals(b)
@@ -53,7 +53,7 @@ func main() {
 	defer func() {
 		err := cfgFile.Close()
 		zap.S().Warnw("Failed to close config file", "error", err)
-	}();
+	}()
 
 	conf := &config.Config{}
 	err = json.NewDecoder(cfgFile).Decode(conf)
@@ -63,15 +63,15 @@ func main() {
 
 	doneSig := make(chan os.Signal, 1)
 	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
-	
+
 	gCtx, cancel := ctx.WithCancel(ctx.New(context.Background(), conf))
 
 	{
 		gCtx.Inst().Redis, err = redis.Create(gCtx, redis.Options{
-			Address: conf.Redis.Address,
+			Address:  conf.Redis.Address,
 			Username: conf.Redis.Username,
 			Password: conf.Redis.Password,
-			DB: conf.Redis.Database,
+			DB:       conf.Redis.Database,
 		})
 
 		if err != nil {
@@ -91,12 +91,11 @@ func main() {
 		gCtx.Inst().RMQ, err = rabbitmq.New(gCtx, &rabbitmq.NewInstanceSettings{
 			Address: gCtx.Config().RabbitMQ.URI,
 		})
-		
+
 		if err != nil {
 			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
 		}
 	}
-
 
 	wg := sync.WaitGroup{}
 
@@ -133,7 +132,7 @@ func main() {
 	}()
 
 	zap.S().Info("Ready!")
-	
+
 	<-done
 
 	os.Exit(0)

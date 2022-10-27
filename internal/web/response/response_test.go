@@ -25,12 +25,10 @@ func TestOkResponse(t *testing.T) {
 			Test string `json:"test"`
 		}
 
-		body := testBody {
+		body := testBody{
 			Test: "test",
 		}
 
-
-		
 		b := OkResponse().
 			SetJSON(body).
 			Build()

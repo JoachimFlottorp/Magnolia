@@ -7,7 +7,7 @@ import (
 )
 
 type InstanceList struct {
-	Redis 	redis.Instance
-	Mongo 	mongo.Instance
-	RMQ 	rabbitmq.Instance
+	Redis redis.Instance
+	Mongo mongo.Instance
+	RMQ   rabbitmq.Instance
 }
