@@ -55,10 +55,10 @@ type MarkovGetParams struct {
 }
 
 type MarkovRoute struct {
-	Ctx 		ctx.Context
-	markovReqs 	map[string]chan *pb.MarkovResponse
-	isAlive 	bool
-	cronMan 	*cron.Manager
+	Ctx        ctx.Context
+	markovReqs map[string]chan *pb.MarkovResponse
+	isAlive    bool
+	cronMan    *cron.Manager
 }
 
 func NewMarkovRoute(gCtx ctx.Context) router.Route {
@@ -80,8 +80,8 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 	go a.handleMarkovRequests()
 
 	assert.Error(a.cronMan.Add(cron.CronOptions{
-		Name: "ping_markov_generator",
-		Spec: "*/5 * * * *",
+		Name:   "ping_markov_generator",
+		Spec:   "*/5 * * * *",
 		RunNow: true,
 		Cmd: func() {
 			a.pingMarkovGenerator()
@@ -106,8 +106,8 @@ func (a *MarkovRoute) Configure() router.RouteConfig {
 //
 // Generate a markov chain based on a channel
 //
-//			Responses:
-//				200: MarkovResponse
+//	Responses:
+//		200: MarkovResponse
 func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
 	var channel string
 	var seed string

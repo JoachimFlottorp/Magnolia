@@ -4,15 +4,12 @@ import (
 	"strings"
 )
 
-/*
-	This is a very simple IRC parser, it does not support tags, it is only built for reading chat messages.
-*/
-
 type ircMessage struct {
 	Raw     string
 	Source  ircMessageSource
 	Command string
 	Params  []string
+	Tags    Tags
 }
 
 type ircMessageSource struct {
@@ -29,6 +26,11 @@ func ParseLine(line string) (Message, error) {
 
 	split := strings.Split(line, " ")
 	idx := 0
+
+	if strings.HasPrefix(split[0], "@") {
+		m.Tags = parseTags(split[idx])
+		idx++
+	}
 
 	if strings.HasPrefix(split[idx], ":") {
 		m.Source = parseSource(split[idx])
@@ -76,6 +78,10 @@ func ParseLine(line string) (Message, error) {
 	case "JOIN":
 		{
 			return parseJoin(m), nil
+		}
+	case "PART":
+		{
+			return parsePart(m), nil
 		}
 	default:
 		{
@@ -134,11 +140,20 @@ func parsePong(m *ircMessage) *PongMessage {
 }
 
 func parsePrivmsg(m *ircMessage) *PrivmsgMessage {
+	msg := m.Params[1]
+
+	/* /me commands */
+	if strings.HasPrefix(msg, "\x01ACTION") && strings.HasSuffix(msg, "\x01") {
+		msg = strings.TrimPrefix(msg, "\x01ACTION")
+		msg = strings.TrimSuffix(msg, "\x01")
+	}
+
 	return &PrivmsgMessage{
 		Raw:     m.Raw,
 		Channel: sanitizeChannel(m.Params[0]),
 		User:    m.Source.Nick,
-		Message: m.Params[1],
+		Message: msg,
+		Tags:    m.Tags,
 	}
 }
 
@@ -161,6 +176,7 @@ func parseNotice(m ircMessage) *NoticeMessage {
 		Raw:     m.Raw,
 		Channel: sanitizeChannel(m.Params[0]),
 		Message: m.Params[1],
+		Tags:    m.Tags,
 	}
 }
 
@@ -170,4 +186,27 @@ func parseJoin(m ircMessage) *JoinMessage {
 		Channel: sanitizeChannel(m.Params[0]),
 		User:    m.Source.Nick,
 	}
+}
+
+func parsePart(m ircMessage) *PartMessage {
+	return &PartMessage{
+		Raw:     m.Raw,
+		Channel: sanitizeChannel(m.Params[0]),
+		User:    m.Source.Nick,
+	}
+}
+
+func parseTags(tags string) Tags {
+	tags = strings.TrimPrefix(tags, "@")
+
+	split := strings.Split(tags, ";")
+
+	t := make(Tags, len(split))
+
+	for _, tag := range split {
+		split := strings.Split(tag, "=")
+		t[split[0]] = split[1]
+	}
+
+	return t
 }

@@ -22,6 +22,15 @@ type Config struct {
 		HealthBind    int    `json:"health_bind"`
 	} `json:"markov"`
 	Http struct {
-		Port int `json:"port"`
+		Port      int    `json:"port"`
+		PublicURL string `json:"public_url"`
 	} `json:"http"`
+	Twitch struct {
+		Bot struct {
+			Username string   `json:"username"`
+			Password string   `json:"password"`
+			Admins   []string `json:"admins"`
+			Prefix   string   `json:"prefix"`
+		} `json:"bot"`
+	} `json:"twitch"`
 }

@@ -20,8 +20,9 @@ type IrcConnection struct {
 	MsgHasRecv chan bool
 	isReady    chan bool
 
-	Conn *websocket.Conn
-	Mtx  sync.Mutex
+	Conn       *websocket.Conn
+	SendMtx    sync.Mutex
+	ChannelMtx sync.Mutex
 
 	MessageSubscriber func(*parser.PrivmsgMessage)
 
@@ -38,7 +39,8 @@ func NewClient(username, password string) *IrcConnection {
 		MsgHasRecv: make(chan bool),
 		RecvPong:   make(chan bool),
 
-		Mtx: sync.Mutex{},
+		SendMtx:    sync.Mutex{},
+		ChannelMtx: sync.Mutex{},
 
 		ConnectedChannels: make([]string, 0),
 	}
@@ -73,10 +75,15 @@ func (c *IrcConnection) Connect() error {
 
 	c.Send("PASS " + c.Password)
 	c.Send("NICK " + c.User)
+	c.Send("CAP REQ :twitch.tv/tags twitch.tv/membership")
 
 	<-c.isReady
 
 	return nil
+}
+
+func (c *IrcConnection) Disconnect() {
+	c.Conn.Close()
 }
 
 func (c *IrcConnection) Reconnect() {
@@ -200,8 +207,35 @@ func (c *IrcConnection) handleLine(line string) {
 				return
 			}
 
+			c.ChannelMtx.Lock()
+			defer c.ChannelMtx.Unlock()
+
 			zap.S().Infow("Joined channel", "channel", msg.Channel)
 			c.ConnectedChannels = append(c.ConnectedChannels, msg.Channel)
+		}
+	case parser.PART:
+		{
+			msg := parsed.(*parser.PartMessage)
+
+			if msg.User != c.User {
+				return
+			}
+
+			c.ChannelMtx.Lock()
+			defer c.ChannelMtx.Unlock()
+
+			zap.S().Infow("Left channel", "channel", msg.Channel)
+
+			newChannels := make([]string, len(c.ConnectedChannels)-1)
+			for i, channel := range c.ConnectedChannels {
+				if channel == msg.Channel {
+					continue
+				}
+
+				newChannels[i] = channel
+			}
+
+			c.ConnectedChannels = newChannels
 		}
 	}
 
@@ -215,11 +249,21 @@ func (c *IrcConnection) Join(channel string) {
 	c.Send("JOIN #" + channel)
 }
 
-func (c *IrcConnection) Send(msg string) {
-	c.Mtx.Lock()
-	defer c.Mtx.Unlock()
+func (c *IrcConnection) Part(channel string) {
+	if channel == "" {
+		return
+	}
 
-	zap.S().Debugw("Sending message", "message", msg)
+	c.Send("PART #" + channel)
+}
+
+func (c *IrcConnection) Send(msg string) {
+	c.SendMtx.Lock()
+	defer c.SendMtx.Unlock()
+
+	if !strings.HasPrefix(msg, "PASS") {
+		zap.S().Debugw("Sending message", "message", msg)
+	}
 
 	err := c.Conn.WriteMessage(websocket.TextMessage, []byte(msg))
 	if err != nil {

@@ -19,17 +19,17 @@ type OuterResponse[T any] struct {
 
 type BotList_t struct {
 	Bots []struct {
-		ID                int       `json:"id"`
-		Name              string    `json:"name"`
-		Prefix            string    `json:"prefix"`
-		HasPrefixSpace    bool      `json:"hasPrefixSpace"`
-		AuthorID          int       `json:"authorID"`
-		AuthorName        string    `json:"authorName"`
-		Language          string    `json:"language"`
-		Description       string    `json:"description"`
-		Level             int       `json:"level"`
-		LastSeen          string	`json:"lastSeen"`
-		LastSeenTimestamp int       `json:"lastSeenTimestamp"`
+		ID                int    `json:"id"`
+		Name              string `json:"name"`
+		Prefix            string `json:"prefix"`
+		HasPrefixSpace    bool   `json:"hasPrefixSpace"`
+		AuthorID          int    `json:"authorID"`
+		AuthorName        string `json:"authorName"`
+		Language          string `json:"language"`
+		Description       string `json:"description"`
+		Level             int    `json:"level"`
+		LastSeen          string `json:"lastSeen"`
+		LastSeenTimestamp int    `json:"lastSeenTimestamp"`
 	} `json:"bots"`
 }
 

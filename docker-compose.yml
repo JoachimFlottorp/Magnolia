@@ -38,6 +38,21 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
+  chat-bot:
+    image: jf/magnolia.chat-bot
+    build:
+      context: .
+      dockerfile: ./cmd/chat-bot/Dockerfile
+    container_name: "magnolia-chat-bot"
+    networks:
+      - "magnolia"
+    restart: unless-stopped
+    volumes:
+      - ./config.json:/app/config.json
+      - "/etc/localtime:/etc/localtime:ro"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: -debug
 
   markov-generator:
     image: jf/magnolia.markov-generator

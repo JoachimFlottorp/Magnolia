@@ -95,30 +95,30 @@ func TestCanParsePRIVMSG(t *testing.T) {
 
 	tests := []testType{
 		{
-			Line: ":foobar!foobar@foobar.tmi.twitch.tv PRIVMSG #forsen :forsenInsane",
+			Line: "@badge-info=subscriber/17;badges=subscriber/12,game-developer/1;color=#FFFBFF;display-name=MarkZynk;emotes=;first-msg=0;flags=;historical=1;id=c98dc399-5e46-4727-b1fa-730b7c522c7c;mod=0;returning-chatter=0;rm-received-ts=1666921005122;room-id=22484632;subscriber=1;tmi-sent-ts=1666921002844;turbo=0;user-id=88492428;user-type= :markzynk!markzynk@markzynk.tmi.twitch.tv PRIVMSG #forsen :AlienPls",
 			Want: &PrivmsgMessage{
-				Raw:     ":foobar!foobar@foobar.tmi.twitch.tv PRIVMSG #forsen :forsenInsane",
+				Raw:     "@badge-info=subscriber/17;badges=subscriber/12,game-developer/1;color=#FFFBFF;display-name=MarkZynk;emotes=;first-msg=0;flags=;historical=1;id=c98dc399-5e46-4727-b1fa-730b7c522c7c;mod=0;returning-chatter=0;rm-received-ts=1666921005122;room-id=22484632;subscriber=1;tmi-sent-ts=1666921002844;turbo=0;user-id=88492428;user-type= :markzynk!markzynk@markzynk.tmi.twitch.tv PRIVMSG #forsen :AlienPls",
 				Channel: "forsen",
-				User:    "foobar",
-				Message: "forsenInsane",
+				User:    "markzynk",
+				Message: "AlienPls",
 			},
 		},
 		{
-			Line: ":kkonaaaaaaaaaaa!kkonaaaaaaaaaaa@kkonaaaaaaaaaaa.tmi.twitch.tv PRIVMSG #forsen :REALLY LONG MESSAGE AAAAAAAA",
+			Line: "@badge-info=subscriber/17;badges=subscriber/12,game-developer/1;color=#FFF2D8;display-name=MarkZynk;emotes=;first-msg=0;flags=;historical=1;id=f55f5e50-490e-4c5e-bb86-bfaef95a9916;mod=0;returning-chatter=0;rm-received-ts=1666921045502;room-id=22484632;subscriber=1;tmi-sent-ts=1666921045293;turbo=0;user-id=88492428;user-type= :markzynk!markzynk@markzynk.tmi.twitch.tv PRIVMSG #forsen :\u0001ACTION AlienPls\u0001",
 			Want: &PrivmsgMessage{
-				Raw:     ":kkonaaaaaaaaaaa!kkonaaaaaaaaaaa@kkonaaaaaaaaaaa.tmi.twitch.tv PRIVMSG #forsen :REALLY LONG MESSAGE AAAAAAAA",
+				Raw:     "@badge-info=subscriber/17;badges=subscriber/12,game-developer/1;color=#FFF2D8;display-name=MarkZynk;emotes=;first-msg=0;flags=;historical=1;id=f55f5e50-490e-4c5e-bb86-bfaef95a9916;mod=0;returning-chatter=0;rm-received-ts=1666921045502;room-id=22484632;subscriber=1;tmi-sent-ts=1666921045293;turbo=0;user-id=88492428;user-type= :markzynk!markzynk@markzynk.tmi.twitch.tv PRIVMSG #forsen :\u0001ACTION AlienPls\u0001",
 				Channel: "forsen",
-				User:    "kkonaaaaaaaaaaa",
-				Message: "REALLY LONG MESSAGE AAAAAAAA",
+				User:    "markzynk",
+				Message: "\u0001ACTION AlienPls\u0001",
 			},
 		},
 		{
-			Line: ":melon095!melon095@melon095.tmi.twitch.tv PRIVMSG #brian6932 :Twitch parser",
+			Line: "@badge-info=;badges=vip/1,overwatch-league-insider_2018B/1;color=#F01DD9;display-name=alyjiahT_T;emotes=;first-msg=0;flags=;historical=1;id=4e95adf6-153c-4152-87ae-7ca03fae1227;mod=0;returning-chatter=0;rm-received-ts=1666921189391;room-id=84180052;subscriber=0;tmi-sent-ts=1666921189173;turbo=0;user-id=145484970;user-type=;vip=1 :alyjiaht_t!alyjiaht_t@alyjiaht_t.tmi.twitch.tv PRIVMSG #brian6932 :hi brian",
 			Want: &PrivmsgMessage{
-				Raw:     ":melon095!melon095@melon095.tmi.twitch.tv PRIVMSG #brian6932 :Twitch parser",
+				Raw:     "@badge-info=;badges=vip/1,overwatch-league-insider_2018B/1;color=#F01DD9;display-name=alyjiahT_T;emotes=;first-msg=0;flags=;historical=1;id=4e95adf6-153c-4152-87ae-7ca03fae1227;mod=0;returning-chatter=0;rm-received-ts=1666921189391;room-id=84180052;subscriber=0;tmi-sent-ts=1666921189173;turbo=0;user-id=145484970;user-type=;vip=1 :alyjiaht_t!alyjiaht_t@alyjiaht_t.tmi.twitch.tv PRIVMSG #brian6932 :hi brian",
 				Channel: "brian6932",
-				User:    "melon095",
-				Message: "Twitch parser",
+				User:    "alyjiaht_t",
+				Message: "hi brian",
 			},
 		},
 	}
@@ -298,6 +298,66 @@ func TestParseJoin(t *testing.T) {
 		assertEqual(t, joinMsg.Raw, test.Want.Raw)
 		assertEqual(t, joinMsg.User, test.Want.User)
 		assertEqual(t, joinMsg.Channel, test.Want.Channel)
+	}
+}
+
+func TestParseTags(t *testing.T) {
+	type testType struct {
+		Line string
+		Want Tags
+	}
+
+	tests := []testType{
+		{
+			Line: "@badge-info=;badges=vip/1,game-developer/1;color=#FF0000;display-name=melon095;emotes=;first-msg=0;flags=;historical=1;id=4a48a887-3a4b-4751-941c-4ddcad9cc22c;mod=0;returning-chatter=0;rm-received-ts=1666920226793;room-id=84180052;subscriber=0;tmi-sent-ts=1666920226595;turbo=0;user-id=146910710;user-type=;vip=1",
+			Want: Tags{
+				"badge-info":        "",
+				"badges":            "vip/1,game-developer/1",
+				"color":             "#FF0000",
+				"display-name":      "melon095",
+				"emotes":            "",
+				"first-msg":         "0",
+				"flags":             "",
+				"historical":        "1",
+				"id":                "4a48a887-3a4b-4751-941c-4ddcad9cc22c",
+				"mod":               "0",
+				"returning-chatter": "0",
+				"rm-received-ts":    "1666920226793",
+				"room-id":           "84180052",
+				"subscriber":        "0",
+				"tmi-sent-ts":       "1666920226595",
+			},
+		},
+		{
+			Line: "@badge-info=subscriber/5;badges=broadcaster/1,subscriber/0,game-developer/1;color=#0096CC;display-name=brian6932;emotes=;first-msg=0;flags=;historical=1;id=640f8e15-1825-4b96-bbb7-2783172b5ec0;mod=0;returning-chatter=0;rm-received-ts=1666900249841;room-id=84180052;subscriber=1;tmi-sent-ts=1666900249620;turbo=0;user-id=84180052;user-type=",
+			Want: Tags{
+				"badge-info":        "subscriber/5",
+				"badges":            "broadcaster/1,subscriber/0,game-developer/1",
+				"color":             "#0096CC",
+				"display-name":      "brian6932",
+				"emotes":            "",
+				"first-msg":         "0",
+				"flags":             "",
+				"historical":        "1",
+				"id":                "640f8e15-1825-4b96-bbb7-2783172b5ec0",
+				"mod":               "0",
+				"returning-chatter": "0",
+				"rm-received-ts":    "1666900249841",
+				"room-id":           "84180052",
+				"subscriber":        "1",
+				"tmi-sent-ts":       "1666900249620",
+				"Hmm":               "",
+				"b":                 "",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		got := parseTags(test.Line)
+
+		for k, v := range test.Want {
+			assertEqual(t, got[k], v)
+		}
 	}
 }
 

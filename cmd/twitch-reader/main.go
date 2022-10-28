@@ -27,10 +27,10 @@ import (
 )
 
 var (
-	cfg    	= flag.String("config", "config.json", "Path to the config file")
-	debug  	= flag.Bool("debug", false, "Enable debug logging")
-	maxMsg 	= flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
-	
+	cfg    = flag.String("config", "config.json", "Path to the config file")
+	debug  = flag.Bool("debug", false, "Enable debug logging")
+	maxMsg = flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
+
 	botIgnoreList = regexp.MustCompile(`bo?t{1,2}(?:(?:ard)?o|\d|_)*$|^(?:fembajs|veryhag|scriptorex|apulxd|qdc26534|linestats|pepegaboat|sierrapine|charlestonbieber|icecreamdatabase|chatvote|localaniki|rewardmore|gorenmu|0weebs|befriendlier|electricbodybuilder|o?bot(?:bear1{3}0|2465|menti|e|nextdoor)|stream(?:elements|labs))$`)
 )
 
@@ -197,13 +197,34 @@ func main() {
 						zap.S().Errorw("Failed to push message to redis", "error", err)
 						continue
 					}
+
+					pbMsg := pb.IRCPrivmsg{
+						Message: data,
+						Channel: msg.Channel,
+						User: &pb.IRCUser{
+							Username: user,
+							UserId:   msg.Tags["user-id"],
+						},
+					}
+
+					msgByt, err := proto.Marshal(&pbMsg)
+
+					if err != nil {
+						zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+						continue
+					}
+
+					if err := gCtx.Inst().Redis.Publish(gCtx, "twitch:messages", msgByt); err != nil {
+						zap.S().Errorw("Failed to publish message to redis", "error", err)
+						continue
+					}
 				}
 			}
 		}
 	}()
 
 	// wg.Add(1)
-	
+
 	// go func() {
 	// 	defer wg.Done()
 

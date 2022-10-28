@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 COPY --from=deps /src/protobuf /src/protobuf
 
-RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/twitch-reader/main.go
+RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/chat-bot/main.go
 
 FROM alpine:latest
 WORKDIR /app

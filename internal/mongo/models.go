@@ -18,16 +18,16 @@ var (
 )
 
 type ApiLog struct {
-	ID 			primitive.ObjectID `json:"id" bson:"_id"`
-	Timestamp 	time.Time `json:"timestamp" bson:"timestamp"`
-	Method 		string `json:"method" bson:"method"`
-	Path 		string `json:"path" bson:"path"`
-	Status 		int `json:"status" bson:"status"`
-	IP 			string `json:"ip" bson:"ip"`
-	UserAgent 	string `json:"user_agent" bson:"user_agent"`
-	Query 		string `json:"query" bson:"query"`
-	Body 		string `json:"body" bson:"body"`
-	Error 		string `json:"error,omitempty" bson:"error"`
+	ID        primitive.ObjectID `json:"id" bson:"_id"`
+	Timestamp time.Time          `json:"timestamp" bson:"timestamp"`
+	Method    string             `json:"method" bson:"method"`
+	Path      string             `json:"path" bson:"path"`
+	Status    int                `json:"status" bson:"status"`
+	IP        string             `json:"ip" bson:"ip"`
+	UserAgent string             `json:"user_agent" bson:"user_agent"`
+	Query     string             `json:"query" bson:"query"`
+	Body      string             `json:"body" bson:"body"`
+	Error     string             `json:"error,omitempty" bson:"error"`
 }
 
 type TwitchChannel struct {

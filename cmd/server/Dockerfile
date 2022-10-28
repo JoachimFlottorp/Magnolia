@@ -8,10 +8,13 @@ RUN make docs
 FROM golang:1.19.2 AS builder
 ENV GO111MODULE=on
 WORKDIR /src
+
+COPY [ "go.mod", "go.sum", "./" ]
+RUN go mod download
+
 COPY . .
 COPY --from=deps /src/protobuf /src/protobuf
 
-RUN go mod download
 RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/server/main.go
 
 FROM alpine:latest

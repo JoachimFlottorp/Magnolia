@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 )
 
 type redisInstance struct {
@@ -79,6 +80,30 @@ func (r *redisInstance) GetAllList(ctx context.Context, key string) ([]string, e
 	}
 
 	return a, e
+}
+
+func (r *redisInstance) Subscribe(ctx context.Context, key string) (chan string, error) {
+	sub := r.client.Subscribe(ctx, r.formatKey(key))
+
+	ch := make(chan string, 50)
+
+	go func() {
+		for {
+			msg, err := sub.ReceiveMessage(ctx)
+			if err != nil {
+				zap.S().Errorw("error receiving message", "channel", key, "error", err)
+				continue
+			}
+
+			ch <- msg.Payload
+		}
+	}()
+
+	return ch, nil
+}
+
+func (r *redisInstance) Publish(ctx context.Context, key string, value interface{}) error {
+	return r.client.Publish(ctx, r.formatKey(key), value).Err()
 }
 
 func (r *redisInstance) Client() *redis.Client {

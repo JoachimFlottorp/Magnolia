@@ -1,16 +1,19 @@
 package parser
 
+type Tags map[string]string
+
 type MessageType int
 
 const (
-	UNSURE    MessageType = iota
-	PRIVMSG   MessageType = iota
-	PING      MessageType = iota
-	PONG      MessageType = iota
-	RECONNECT MessageType = iota
-	NOTICE    MessageType = iota
-	ENDOFMOTD MessageType = iota
-	JOIN      MessageType = iota
+	UNSURE    = MessageType(iota)
+	PRIVMSG   = MessageType(iota)
+	PING      = MessageType(iota)
+	PONG      = MessageType(iota)
+	RECONNECT = MessageType(iota)
+	NOTICE    = MessageType(iota)
+	ENDOFMOTD = MessageType(iota)
+	JOIN      = MessageType(iota)
+	PART      = MessageType(iota)
 )
 
 type Message interface {
@@ -31,6 +34,7 @@ type PrivmsgMessage struct {
 	Channel string
 	User    string
 	Message string
+	Tags    Tags
 }
 
 func (m *PrivmsgMessage) GetType() MessageType {
@@ -67,6 +71,7 @@ type NoticeMessage struct {
 	Raw     string
 	Channel string
 	Message string
+	Tags    Tags
 }
 
 func (m *NoticeMessage) GetType() MessageType {
@@ -91,4 +96,14 @@ type JoinMessage struct {
 
 func (m *JoinMessage) GetType() MessageType {
 	return JOIN
+}
+
+type PartMessage struct {
+	Raw     string
+	User    string
+	Channel string
+}
+
+func (m *PartMessage) GetType() MessageType {
+	return PART
 }

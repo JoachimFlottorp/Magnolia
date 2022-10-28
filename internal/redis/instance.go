@@ -37,6 +37,9 @@ type Instance interface {
 
 	GetAllList(context.Context, string) ([]string, error)
 
+	Subscribe(context.Context, string) (chan string, error)
+	Publish(context.Context, string, interface{}) error
+
 	// Prefix returns the prefix used for all keys
 	Prefix() string
 
