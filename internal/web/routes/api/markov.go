@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
-	"time"
 
+	"github.com/JoachimFlottorp/GoCommon/assert"
+	"github.com/JoachimFlottorp/GoCommon/cron"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/web/response"
@@ -27,8 +27,6 @@ var (
 	ErrNoData           = "no data"
 	ErrTooLong          = "took to long to generate markov chain"
 	ErrUnableToGenerate = "unable to generate markov chain"
-
-	ValidChannel = regexp.MustCompile(`^[a-zA-Z0-9_]{4,25}$`)
 )
 
 func ErrNotEnoughData(len int) string {
@@ -57,11 +55,10 @@ type MarkovGetParams struct {
 }
 
 type MarkovRoute struct {
-	Ctx ctx.Context
-
-	markovReqs map[string]chan *pb.MarkovResponse
-
-	isAlive bool
+	Ctx 		ctx.Context
+	markovReqs 	map[string]chan *pb.MarkovResponse
+	isAlive 	bool
+	cronMan 	*cron.Manager
 }
 
 func NewMarkovRoute(gCtx ctx.Context) router.Route {
@@ -78,23 +75,20 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 		markovReqs: make(map[string]chan *pb.MarkovResponse),
 	}
 
+	a.cronMan = cron.NewManager(gCtx, false)
+
 	go a.handleMarkovRequests()
 
-	a.pingMarkovGenerator()
-	go func() {
-		for {
-			select {
-			case <-a.Ctx.Done():
-				{
-					return
-				}
-			case <-time.After(1 * time.Minute):
-				{
-					a.pingMarkovGenerator()
-				}
-			}
-		}
-	}()
+	assert.Error(a.cronMan.Add(cron.CronOptions{
+		Name: "ping_markov_generator",
+		Spec: "*/5 * * * *",
+		RunNow: true,
+		Cmd: func() {
+			a.pingMarkovGenerator()
+		},
+	}), "Failed to add cron job")
+
+	a.cronMan.Start()
 
 	return a
 }
@@ -126,11 +120,6 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 		return response.
 			Error().
 			BadRequest("Missing channel parameter").
-			Build()
-	} else if !ValidChannel.MatchString(channel) {
-		return response.
-			Error().
-			BadRequest("Invalid channel name").
 			Build()
 	}
 
