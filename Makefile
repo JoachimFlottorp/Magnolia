@@ -16,7 +16,7 @@ proto:
 	cd protobuf; npm run generate
 
 docker:
-	docker build -f Dockerfile.shared -t jf/magnolia.deps .
+	docker build -f docker/Dockerfile.shared -t jf/magnolia.deps .
 
 compose: docker
 	docker compose build

@@ -2,6 +2,7 @@ FROM jf/magnolia.deps AS deps
 
 FROM golang:1.19.2 AS builder
 ENV GO111MODULE=on
+ENV GOCACHE /go/cache
 WORKDIR /src
 
 COPY [ "go.mod", "go.sum", "./" ]
@@ -9,8 +10,9 @@ RUN go mod download
 
 COPY . .
 COPY --from=deps /src/protobuf /src/protobuf
+COPY --from=deps /go/cache /go/cache
 
-RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/chat-bot/main.go
+RUN go build -v -ldflags '-extldflags "-static"' -o server /src/cmd/twitch-reader/main.go
 
 FROM alpine:latest
 WORKDIR /app
