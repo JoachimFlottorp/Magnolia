@@ -13,12 +13,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/JoachimFlottorp/GoCommon/cron"
+	recentmessages "github.com/JoachimFlottorp/magnolia/external/recent-messages"
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
 	"github.com/JoachimFlottorp/magnolia/internal/web"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"go.uber.org/zap"
 )
@@ -131,9 +135,52 @@ func main() {
 		}
 	}()
 
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		cronMan := cron.NewManager(gCtx, false)
+
+		cronMan.Add(cron.CronOptions{
+			Name: "updateRecentMessageBroker",
+			Spec: "*/5 * * * *",
+			RunNow: false,
+			Cmd: func () { updateRecentMessageBroker(gCtx, gCtx.Inst().Mongo) },
+		})
+
+		cronMan.Start()
+	
+		<-gCtx.Done()
+	}()
+
 	zap.S().Info("Ready!")
 
 	<-done
 
 	os.Exit(0)
+}
+
+func updateRecentMessageBroker(ctx context.Context, m mongo.Instance) {
+	var channels []mongo.TwitchChannel
+	cursor, err := m.Collection(mongo.CollectionTwitch).Find(ctx, bson.M{})
+	if err != nil {
+		zap.S().Errorw("Failed to get twitch channels", "error", err)
+		return
+	}
+
+	if err := cursor.All(ctx, &channels); err != nil {
+		zap.S().Errorw("Failed to decode twitch channels", "error", err)
+		return
+	}
+
+	var c []string
+
+	for _, channel := range channels {
+		c = append(c, channel.TwitchName)
+	}
+
+	recentmessages.Request(recentmessages.EndpointSnakes, c)
+
+	zap.S().Infof("Requested recent messages for %d channels", len(c))
 }

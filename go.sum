@@ -8,6 +8,8 @@ github.com/JoachimFlottorp/GoCommon v0.0.0-20221028002807-b68eec68dd1c h1:2I0sBT
 github.com/JoachimFlottorp/GoCommon v0.0.0-20221028002807-b68eec68dd1c/go.mod h1:7lZOBOaQqV3diuTiSKmaJCEA+CdT9Zl+nTEvOit47jE=
 github.com/JoachimFlottorp/GoCommon v0.0.0-20221028004347-507506ccff19 h1:XnaUk8KaCVvZ8o0fxHw1nQSYOGccv3UwX5me/JKRd7s=
 github.com/JoachimFlottorp/GoCommon v0.0.0-20221028004347-507506ccff19/go.mod h1:7lZOBOaQqV3diuTiSKmaJCEA+CdT9Zl+nTEvOit47jE=
+github.com/JoachimFlottorp/GoCommon v0.0.0-20221029195200-7048fbe5151a h1:lJRGo81VFx6+Bi6d1wtkBtjD7rzNHWb7e33FD17OuHc=
+github.com/JoachimFlottorp/GoCommon v0.0.0-20221029195200-7048fbe5151a/go.mod h1:7lZOBOaQqV3diuTiSKmaJCEA+CdT9Zl+nTEvOit47jE=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/cespare/xxhash/v2 v2.1.2 h1:YRXhKfTDauu4ajMg1TPgFO5jnlC2HCbmLXMcTG5cbYE=
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
