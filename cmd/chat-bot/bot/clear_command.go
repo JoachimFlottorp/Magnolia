@@ -35,9 +35,15 @@ func (c clearCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 	}
 	
 	channel = strings.Replace(channel, "$this", ctx.Channel(), -1)
+	channel = strings.ToLower(channel)
+	
 	key := fmt.Sprintf("twitch:%s:chat-data", channel)
 
-	c.Ctx.Inst().Redis.Del(c.Ctx, key)
+	err := c.Ctx.Inst().Redis.Del(c.Ctx, key)
+	if err != nil {
+		b.Say(ctx.Channel(), "Failed to clear chat data FeelsDankMan")
+		return err
+	}
 	b.Say(ctx.Channel(), "ok FeelsDankMan")
 	
 	return nil
