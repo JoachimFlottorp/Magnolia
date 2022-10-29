@@ -1,4 +1,4 @@
-package parser
+package irc
 
 type Tags map[string]string
 

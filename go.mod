@@ -3,7 +3,7 @@ module github.com/JoachimFlottorp/magnolia
 go 1.19
 
 require (
-	github.com/JoachimFlottorp/GoCommon v0.0.0-20221028002519-ecac2b2d44b4
+	github.com/JoachimFlottorp/GoCommon v0.0.0-20221028004347-507506ccff19
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0

@@ -14,12 +14,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/JoachimFlottorp/magnolia/cmd/twitch-reader/irc"
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
+	"github.com/JoachimFlottorp/magnolia/pkg/irc"
 	pb "github.com/JoachimFlottorp/magnolia/protobuf"
 	"google.golang.org/protobuf/proto"
 

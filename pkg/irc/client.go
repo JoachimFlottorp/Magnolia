@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/JoachimFlottorp/magnolia/cmd/twitch-reader/irc/parser"
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
@@ -24,7 +23,7 @@ type IrcConnection struct {
 	SendMtx    sync.Mutex
 	ChannelMtx sync.Mutex
 
-	MessageSubscriber func(*parser.PrivmsgMessage)
+	MessageSubscriber func(*PrivmsgMessage)
 
 	ConnectedChannels []string
 }
@@ -48,7 +47,7 @@ func NewClient(username, password string) *IrcConnection {
 	return c
 }
 
-func (c *IrcConnection) OnMessage(cb func(msg *parser.PrivmsgMessage)) {
+func (c *IrcConnection) OnMessage(cb func(msg *PrivmsgMessage)) {
 	c.MessageSubscriber = cb
 }
 
@@ -154,54 +153,54 @@ func (c *IrcConnection) handleLine(line string) {
 		}
 	}()
 
-	parsed, err := parser.ParseLine(line)
+	parsed, err := ParseLine(line)
 	if err != nil {
 		zap.S().Errorw("Failed to parse line", "error", err)
 		return
 	}
 
 	switch parsed.GetType() {
-	case parser.PONG:
+	case PONG:
 		{
 			select {
 			case c.RecvPong <- true:
 			default:
 			}
 		}
-	case parser.RECONNECT:
+	case RECONNECT:
 		{
 			zap.S().Infow("Twitch told us to reconnect")
 			c.Reconnect()
 		}
-	case parser.PING:
+	case PING:
 		{
 			c.Send("PONG : HI-:D")
 		}
-	case parser.PRIVMSG:
+	case PRIVMSG:
 		{
-			msg := parsed.(*parser.PrivmsgMessage)
+			msg := parsed.(*PrivmsgMessage)
 			if c.MessageSubscriber == nil {
 				return
 			}
 
 			c.MessageSubscriber(msg)
 		}
-	case parser.ENDOFMOTD:
+	case ENDOFMOTD:
 		{
 			zap.S().Infow("Connected to server")
 			c.isReady <- true
 		}
-	case parser.NOTICE:
+	case NOTICE:
 		{
-			msg := parsed.(*parser.NoticeMessage)
+			msg := parsed.(*NoticeMessage)
 
 			if strings.HasPrefix(msg.Message, "Login authentication failed") {
 				zap.S().Errorw("Failed to authenticate with server")
 			}
 		}
-	case parser.JOIN:
+	case JOIN:
 		{
-			msg := parsed.(*parser.JoinMessage)
+			msg := parsed.(*JoinMessage)
 
 			if msg.User != c.User {
 				return
@@ -213,9 +212,9 @@ func (c *IrcConnection) handleLine(line string) {
 			zap.S().Infow("Joined channel", "channel", msg.Channel)
 			c.ConnectedChannels = append(c.ConnectedChannels, msg.Channel)
 		}
-	case parser.PART:
+	case PART:
 		{
-			msg := parsed.(*parser.PartMessage)
+			msg := parsed.(*PartMessage)
 
 			if msg.User != c.User {
 				return

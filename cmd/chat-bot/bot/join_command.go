@@ -33,6 +33,7 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 	channel := args[0]
 	if channel == "" {
 		b.Say(ctx.Channel(), "Provide a channel FeelsDankMan")
+		return nil
 	}
 	
 	mongoChannel := mongo.TwitchChannel {

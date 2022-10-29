@@ -16,8 +16,8 @@ import (
 
 	"github.com/JoachimFlottorp/magnolia/cmd/chat-bot/bot/cmdctx"
 	"github.com/JoachimFlottorp/magnolia/cmd/chat-bot/bot/execlevel"
-	"github.com/JoachimFlottorp/magnolia/cmd/twitch-reader/irc"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/JoachimFlottorp/magnolia/pkg/irc"
 	pb "github.com/JoachimFlottorp/magnolia/protobuf"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"

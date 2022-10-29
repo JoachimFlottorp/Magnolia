@@ -56,6 +56,10 @@ func (r *redisInstance) Del(ctx context.Context, key string) error {
 	return r.client.Del(ctx, r.formatKey(key)).Err()
 }
 
+func (r *redisInstance) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return r.client.Keys(ctx, r.formatKey(pattern)).Result()
+}
+
 func (r *redisInstance) Expire(ctx context.Context, key string, expiration time.Duration) error {
 	return r.client.Expire(ctx, r.formatKey(key), expiration).Err()
 }

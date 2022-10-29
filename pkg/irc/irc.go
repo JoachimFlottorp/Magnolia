@@ -3,7 +3,6 @@ package irc
 import (
 	"sync"
 
-	"github.com/JoachimFlottorp/magnolia/cmd/twitch-reader/irc/parser"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,7 +24,7 @@ type IrcManager struct {
 	mtx   sync.Mutex
 
 	joinQueue    chan string
-	MessageQueue chan *parser.PrivmsgMessage
+	MessageQueue chan *PrivmsgMessage
 }
 
 func NewManager(gCtx ctx.Context) *IrcManager {
@@ -34,7 +33,7 @@ func NewManager(gCtx ctx.Context) *IrcManager {
 		conns:        make([]*IrcConnection, 0),
 		mtx:          sync.Mutex{},
 		joinQueue:    make(chan string),
-		MessageQueue: make(chan *parser.PrivmsgMessage),
+		MessageQueue: make(chan *PrivmsgMessage),
 	}
 
 	go func() {
@@ -98,7 +97,7 @@ func (m *IrcManager) availableConnector() (*IrcConnection, error) {
 func (m *IrcManager) createNewConnector() (*IrcConnection, error) {
 	conn := NewClient(DEFAULT_USERNAME, DEFAULT_PASSWORD)
 
-	conn.OnMessage(func(msg *parser.PrivmsgMessage) {
+	conn.OnMessage(func(msg *PrivmsgMessage) {
 		m.MessageQueue <- msg
 	})
 
