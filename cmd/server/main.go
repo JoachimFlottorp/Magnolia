@@ -180,7 +180,10 @@ func updateRecentMessageBroker(ctx context.Context, m mongo.Instance) {
 		c = append(c, channel.TwitchName)
 	}
 
-	recentmessages.Request(recentmessages.EndpointSnakes, c)
+	if err := recentmessages.Request(recentmessages.EndpointSnakes, c); err != nil {
+		zap.S().Errorw("Failed to request recent messages", "error", err)
+		return
+	}
 
 	zap.S().Infof("Requested recent messages for %d channels", len(c))
 }
