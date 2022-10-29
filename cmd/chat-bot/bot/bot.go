@@ -128,6 +128,9 @@ func (b *bot) Say(channel, message string, args ...interface{}) {
 func (b *bot) setupCommands() {
 	healthCommand := newJoinCommand(b.ctx)
 	commands[healthCommand.Name()] = healthCommand
+	
+	clearCommand := newClearCommand(b.ctx)
+	commands[clearCommand.Name()] = clearCommand
 }
 
 
