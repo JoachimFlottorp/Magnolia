@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/web/response"
@@ -9,6 +10,13 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+var t = time.Now()
+
+type HealthResponse struct {
+	Name   string `json:"name"`
+	Uptime int64  `json:"uptime"`
+}
 
 type Route struct {
 	Ctx ctx.Context
@@ -20,15 +28,21 @@ func NewApi(gCtx ctx.Context) router.Route {
 
 func (a *Route) Configure() router.RouteConfig {
 	return router.RouteConfig{
-		URI: "/api",
+		URI:    "/api",
 		Method: []string{http.MethodGet},
-		Children: []router.Route{},
+		Children: []router.Route{
+			NewMarkovRoute(a.Ctx),
+		},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }
 
 func (a *Route) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
-	return response.OkResponse().
-		SetBody("This is the API Root. Open the API Documentation located at / for more information").
+	return response.
+		OkResponse().
+		SetJSON(HealthResponse{
+			Name: "api",
+			Uptime: int64(t.UnixMilli()),
+		}).
 		Build()
 }

@@ -12,7 +12,14 @@ build:
 docs:
 	swagger generate spec -m -o ./web/public/swagger.json
 
-compose:
+proto:
+	cd protobuf; npm run generate
+
+docker:
+	docker build -f docker/Dockerfile.shared -t jf/magnolia.deps .
+
+compose: docker
+	docker compose build
 	docker compose up
 
 test:

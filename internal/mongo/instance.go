@@ -13,14 +13,15 @@ import (
 type CollectionName string
 
 const (
-	CollectionAPILog CollectionName = "api_log"
+	CollectionAPILog = CollectionName("api_log")
+	CollectionTwitch = CollectionName("twitch")
 )
+
+var ErrNoDocuments = mongo.ErrNoDocuments
 
 type Instance interface {
 	Collection(CollectionName) *mongo.Collection
 	Ping(ctx context.Context) error
-	RawClient() *mongo.Client
-	RawDatabase() *mongo.Database
 }
 
 type mongoInst struct {
@@ -50,7 +51,7 @@ func createUrl(cfg *config.Config) string {
 
 func New(ctx context.Context, cfg *config.Config) (Instance, error) {
 	uri := createUrl(cfg)
-	
+
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
@@ -60,11 +61,9 @@ func New(ctx context.Context, cfg *config.Config) (Instance, error) {
 		return nil, err
 	}
 
-	db := client.Database(cfg.Mongo.DB)
-
 	return &mongoInst{
 		client: client,
-		db:     db,
+		db:     client.Database(cfg.Mongo.DB),
 	}, nil
 }
 
@@ -74,12 +73,4 @@ func (i *mongoInst) Collection(name CollectionName) *mongo.Collection {
 
 func (i *mongoInst) Ping(ctx context.Context) error {
 	return i.db.Client().Ping(ctx, nil)
-}
-
-func (i *mongoInst) RawClient() *mongo.Client {
-	return i.client
-}
-
-func (i *mongoInst) RawDatabase() *mongo.Database {
-	return i.db
 }

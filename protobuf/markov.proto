@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = ".;proto";
+
+package proto;
+
+message MarkovRequest {
+    repeated string messages = 1;
+    optional string seed = 3;
+}
+
+message MarkovResponse {
+    string result = 1;
+    optional string error = 2;
+}

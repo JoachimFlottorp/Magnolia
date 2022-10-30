@@ -17,7 +17,7 @@ type Options struct {
 type Instance interface {
 	// Ping checks if the redis instance is alive
 	Ping(context.Context) error
-
+	
 	// Get returns the value of the key
 	Get(context.Context, string) (string, error)
 	// Set sets the value of the key
@@ -28,7 +28,19 @@ type Instance interface {
 	Del(context.Context, string) error
 	// Expire sets the expiration of the key
 	Expire(context.Context, string, time.Duration) error
-	
+	Keys(context.Context, string) ([]string, error)
+
+	// Add a value to a set
+	LPush(context.Context, string, string) error
+	LRPop(context.Context, string) error
+
+	LLen(context.Context, string) (int64, error)
+
+	GetAllList(context.Context, string) ([]string, error)
+
+	Subscribe(context.Context, string) (chan string, error)
+	Publish(context.Context, string, interface{}) error
+
 	// Prefix returns the prefix used for all keys
 	Prefix() string
 

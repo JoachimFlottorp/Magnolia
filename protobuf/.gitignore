@@ -1,0 +1,4 @@
+*.go
+node_modules
+*.ts
+!generate.ts

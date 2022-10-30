@@ -13,23 +13,28 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/JoachimFlottorp/GoCommon/cron"
+	recentmessages "github.com/JoachimFlottorp/magnolia/external/recent-messages"
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
+	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
 	"github.com/JoachimFlottorp/magnolia/internal/web"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"go.uber.org/zap"
 )
 
 var (
-	cfg = flag.String("config", "config.json", "Path to the config file")
+	cfg   = flag.String("config", "config.json", "Path to the config file")
 	debug = flag.Bool("debug", false, "Enable debug logging")
 )
 
 func init() {
 	flag.Parse()
-	
+
 	if *debug {
 		b, _ := zap.NewDevelopmentConfig().Build()
 		zap.ReplaceGlobals(b)
@@ -43,8 +48,6 @@ func init() {
 	}
 }
 
-
-
 func main() {
 	cfgFile, err := os.OpenFile(*cfg, os.O_RDONLY, 0)
 	if err != nil {
@@ -54,7 +57,7 @@ func main() {
 	defer func() {
 		err := cfgFile.Close()
 		zap.S().Warnw("Failed to close config file", "error", err)
-	}();
+	}()
 
 	conf := &config.Config{}
 	err = json.NewDecoder(cfgFile).Decode(conf)
@@ -64,15 +67,15 @@ func main() {
 
 	doneSig := make(chan os.Signal, 1)
 	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
-	
+
 	gCtx, cancel := ctx.WithCancel(ctx.New(context.Background(), conf))
 
 	{
 		gCtx.Inst().Redis, err = redis.Create(gCtx, redis.Options{
-			Address: conf.Redis.Address,
+			Address:  conf.Redis.Address,
 			Username: conf.Redis.Username,
 			Password: conf.Redis.Password,
-			DB: conf.Redis.Database,
+			DB:       conf.Redis.Database,
 		})
 
 		if err != nil {
@@ -82,11 +85,20 @@ func main() {
 
 	{
 		gCtx.Inst().Mongo, err = mongo.New(gCtx, conf)
+
 		if err != nil {
 			zap.S().Fatalw("Failed to create mongo instance", "error", err)
 		}
+	}
 
-		_ = gCtx.Inst().Mongo.RawDatabase().CreateCollection(gCtx, string(mongo.CollectionAPILog))
+	{
+		gCtx.Inst().RMQ, err = rabbitmq.New(gCtx, &rabbitmq.NewInstanceSettings{
+			Address: gCtx.Config().RabbitMQ.URI,
+		})
+
+		if err != nil {
+			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
+		}
 	}
 
 	wg := sync.WaitGroup{}
@@ -123,9 +135,55 @@ func main() {
 		}
 	}()
 
-	zap.S().Info("Ready!")
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		cronMan := cron.NewManager(gCtx, false)
+
+		cronMan.Add(cron.CronOptions{
+			Name: "updateRecentMessageBroker",
+			Spec: "*/5 * * * *",
+			RunNow: false,
+			Cmd: func () { updateRecentMessageBroker(gCtx, gCtx.Inst().Mongo) },
+		})
+
+		cronMan.Start()
 	
+		<-gCtx.Done()
+	}()
+
+	zap.S().Info("Ready!")
+
 	<-done
 
 	os.Exit(0)
+}
+
+func updateRecentMessageBroker(ctx context.Context, m mongo.Instance) {
+	var channels []mongo.TwitchChannel
+	cursor, err := m.Collection(mongo.CollectionTwitch).Find(ctx, bson.M{})
+	if err != nil {
+		zap.S().Errorw("Failed to get twitch channels", "error", err)
+		return
+	}
+
+	if err := cursor.All(ctx, &channels); err != nil {
+		zap.S().Errorw("Failed to decode twitch channels", "error", err)
+		return
+	}
+
+	var c []string
+
+	for _, channel := range channels {
+		c = append(c, channel.TwitchName)
+	}
+
+	if err := recentmessages.Request(recentmessages.EndpointSnakes, c); err != nil {
+		zap.S().Errorw("Failed to request recent messages", "error", err)
+		return
+	}
+
+	zap.S().Infof("Requested recent messages for %d channels", len(c))
 }

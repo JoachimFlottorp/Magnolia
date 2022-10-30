@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"go.uber.org/zap"
 )
 
 type redisInstance struct {
@@ -23,7 +24,7 @@ func Create(ctx context.Context, options Options) (Instance, error) {
 	if err := rds.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
-	
+
 	inst := &redisInstance{
 		client: rds,
 	}
@@ -55,8 +56,58 @@ func (r *redisInstance) Del(ctx context.Context, key string) error {
 	return r.client.Del(ctx, r.formatKey(key)).Err()
 }
 
+func (r *redisInstance) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return r.client.Keys(ctx, r.formatKey(pattern)).Result()
+}
+
 func (r *redisInstance) Expire(ctx context.Context, key string, expiration time.Duration) error {
 	return r.client.Expire(ctx, r.formatKey(key), expiration).Err()
+}
+
+func (r *redisInstance) LPush(ctx context.Context, key string, value string) error {
+	return r.client.LPush(ctx, r.formatKey(key), value).Err()
+}
+
+func (r *redisInstance) LRPop(ctx context.Context, key string) error {
+	return r.client.RPop(ctx, r.formatKey(key)).Err()
+}
+
+func (r *redisInstance) LLen(ctx context.Context, key string) (int64, error) {
+	return r.client.LLen(ctx, r.formatKey(key)).Result()
+}
+
+func (r *redisInstance) GetAllList(ctx context.Context, key string) ([]string, error) {
+	a, e := r.client.LRange(ctx, r.formatKey(key), 0, -1).Result()
+
+	if len(a) == 0 {
+		return nil, redis.Nil
+	}
+
+	return a, e
+}
+
+func (r *redisInstance) Subscribe(ctx context.Context, key string) (chan string, error) {
+	sub := r.client.Subscribe(ctx, r.formatKey(key))
+
+	ch := make(chan string, 50)
+
+	go func() {
+		for {
+			msg, err := sub.ReceiveMessage(ctx)
+			if err != nil {
+				zap.S().Errorw("error receiving message", "channel", key, "error", err)
+				continue
+			}
+
+			ch <- msg.Payload
+		}
+	}()
+
+	return ch, nil
+}
+
+func (r *redisInstance) Publish(ctx context.Context, key string, value interface{}) error {
+	return r.client.Publish(ctx, r.formatKey(key), value).Err()
 }
 
 func (r *redisInstance) Client() *redis.Client {

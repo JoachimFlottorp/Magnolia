@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option go_package = ".;proto";
+
+package proto;
+
+message SubChannelReq {
+    string channel = 1;
+}
+
+message IRCUser {
+    string username = 1;
+    string user_id = 2;
+}
+
+message IRCPrivmsg {
+    string channel = 1;
+    string message = 2;
+    IRCUser user = 3;
+}
