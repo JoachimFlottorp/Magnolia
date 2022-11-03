@@ -40,6 +40,12 @@ func (t *TwitchChannel) GetByName(ctx context.Context, i Instance) error {
 	return i.Collection(CollectionTwitch).FindOne(ctx, bson.M{"twitch_name": t.TwitchName}).Decode(t)
 }
 
+func (t *TwitchChannel) RemoveChannel(ctx context.Context, i Instance) error {
+	_, err := i.Collection(CollectionTwitch).DeleteOne(ctx, bson.M{"_id": t.ID})
+
+	return err
+}
+
 func (t *TwitchChannel) ResolveByIVR(ctx context.Context) error {
 	if t.TwitchName == "" {
 		return ErrMissingName

@@ -20,6 +20,7 @@ const (
 	ExchangeTypeHeaders = ExchangeType("headers")
 
 	QueueJoinRequest       = QueueName("twitch-join-request")
+	QueuePartRequest       = QueueName("twitch-part-request")
 	QueueMarkovGenenerator = QueueName("markov-generator")
 )
 
