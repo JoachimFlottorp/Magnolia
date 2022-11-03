@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = ".;proto";
+
+package proto;
+
+enum ProviderType {
+    SEVENTV = 0;
+    BTTV = 1;
+    FFZ = 2;
+    UNKNOWN = 3;
+}
+
+enum EmoteType {
+    GLOBAL = 0;
+    CHANNEL = 1;
+}
+
+message ImageList {
+    string Small = 1;
+    string Big = 2;
+}
+
+message Emote {
+    string Name = 1;
+    ProviderType Provider = 2;
+    EmoteType Type = 3;
+    ImageList ImageList = 4;
+}
+
+message EmoteList {
+    repeated Emote Emotes = 1;
+}

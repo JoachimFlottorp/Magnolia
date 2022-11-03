@@ -17,7 +17,7 @@ type Options struct {
 type Instance interface {
 	// Ping checks if the redis instance is alive
 	Ping(context.Context) error
-	
+
 	// Get returns the value of the key
 	Get(context.Context, string) (string, error)
 	// Set sets the value of the key

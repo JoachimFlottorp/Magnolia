@@ -33,10 +33,10 @@ func (c clearCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 		b.Say(ctx.Channel(), "Provide a channel FeelsDankMan")
 		return nil
 	}
-	
+
 	channel = strings.Replace(channel, "$this", ctx.Channel(), -1)
 	channel = strings.ToLower(channel)
-	
+
 	key := fmt.Sprintf("twitch:%s:chat-data", channel)
 
 	err := c.Ctx.Inst().Redis.Del(c.Ctx, key)
@@ -45,6 +45,6 @@ func (c clearCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 		return err
 	}
 	b.Say(ctx.Channel(), "ok FeelsDankMan")
-	
+
 	return nil
 }
