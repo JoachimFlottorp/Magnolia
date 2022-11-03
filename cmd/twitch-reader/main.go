@@ -21,6 +21,7 @@ import (
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
 	"github.com/JoachimFlottorp/magnolia/pkg/irc"
 	pb "github.com/JoachimFlottorp/magnolia/protobuf"
+	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/protobuf/proto"
 
 	"go.uber.org/zap"
@@ -129,6 +130,41 @@ func main() {
 					}
 
 					onJoinRequest(gCtx, ircMan, req)
+				}
+			}
+		}()
+
+		go func() {
+			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
+				Queue: rabbitmq.QueuePartRequest,
+			})
+
+			if err != nil {
+				zap.S().Fatalw("Failed to consume rabbitmq queue", "error", err)
+			}
+			for {
+				select {
+				case <-gCtx.Done():
+					return
+				case m := <-msg:
+					req := &pb.SubChannelReq{}
+					err = proto.Unmarshal(m.Body, req)
+					if err != nil {
+						zap.S().Fatalw("Failed to unmarshal rabbitmq message", "error", err)
+						continue
+					}
+
+					ircMan.LeaveChannel(req.Channel)
+
+					_, err = gCtx.Inst().Mongo.
+						Collection(mongo.CollectionTwitch).
+						DeleteOne(gCtx, bson.M{
+							"twitch_name": req.Channel,
+						})
+
+					if err != nil {
+						zap.S().Errorw("Failed to delete channel from mongo", "error", err)
+					}
 				}
 			}
 		}()

@@ -131,6 +131,9 @@ func (b *bot) setupCommands() {
 
 	clearCommand := newClearCommand(b.ctx)
 	commands[clearCommand.Name()] = clearCommand
+
+	leaveCommand := newLeaveCommand(b.ctx)
+	commands[leaveCommand.Name()] = leaveCommand
 }
 
 func cleanInput(prefix, input string) (command string, args []string) {

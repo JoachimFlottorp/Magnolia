@@ -13,25 +13,25 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type joinCommand struct {
+type leaveCommand struct {
 	Ctx ctx.Context
 }
 
-func newJoinCommand(gCtx ctx.Context) Command {
-	return joinCommand{
+func newLeaveCommand(gCtx ctx.Context) Command {
+	return leaveCommand{
 		Ctx: gCtx,
 	}
 }
 
-func (c joinCommand) Name() string {
-	return "join"
+func (c leaveCommand) Name() string {
+	return "leave"
 }
 
-func (c joinCommand) ExecutionLevel() execlevel.ExecutionLevel {
+func (c leaveCommand) ExecutionLevel() execlevel.ExecutionLevel {
 	return execlevel.ExecutionLevelAdmin
 }
 
-func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
+func (c leaveCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 	if len(args) == 0 || args[0] == "" {
 		b.Say(ctx.Channel(), "Provide a channel FeelsDankMan")
 		return nil
@@ -45,11 +45,6 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 
 	err := mongoChannel.GetByName(c.Ctx, c.Ctx.Inst().Mongo)
 	if err == nil {
-		b.Say(ctx.Channel(), "Channel already joined FeelsDankMan")
-		return nil
-	} else if err != mongo.ErrNoDocuments {
-		return err
-	} else if err == mongo.ErrNoDocuments {
 		req := pb.SubChannelReq{
 			Channel: channel,
 		}
@@ -60,7 +55,7 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 		}
 
 		err = c.Ctx.Inst().RMQ.Publish(c.Ctx, rabbitmq.PublishSettings{
-			RoutingKey: rabbitmq.QueueJoinRequest,
+			RoutingKey: rabbitmq.QueuePartRequest,
 			Msg: amqp091.Publishing{
 				Body:        reqByte,
 				ContentType: "application/protobuf; twitch.SubChannelReq",
@@ -71,7 +66,13 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 			return err
 		}
 
-		b.Say(ctx.Channel(), "Joining channel "+channel+" FeelsDankMan")
+		b.Say(ctx.Channel(), "Leaving channel "+channel+" FeelsDankMan")
+		return nil
+	} else if err != mongo.ErrNoDocuments {
+		b.Say(ctx.Channel(), "Error FeelsDankMan")
+		return err
+	} else if err == mongo.ErrNoDocuments {
+		b.Say(ctx.Channel(), "Channel already parted FeelsDankMan")
 	}
 
 	return nil

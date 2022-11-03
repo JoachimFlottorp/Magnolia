@@ -109,3 +109,12 @@ func (m *IrcManager) createNewConnector() (*IrcConnection, error) {
 func (m *IrcManager) JoinChannel(channel mongo.TwitchChannel) {
 	m.joinQueue <- channel.TwitchName
 }
+
+func (m *IrcManager) LeaveChannel(channel string) {
+	for _, conn := range m.conns {
+		if conn.IsConnectedToChannel(channel) {
+			conn.Part(channel)
+			return
+		}
+	}
+}

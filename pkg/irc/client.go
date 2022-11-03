@@ -269,3 +269,16 @@ func (c *IrcConnection) Send(msg string) {
 		zap.S().Errorw("Failed to send message to server", "error", err)
 	}
 }
+
+func (c *IrcConnection) IsConnectedToChannel(channel string) bool {
+	c.ChannelMtx.Lock()
+	defer c.ChannelMtx.Unlock()
+
+	for _, connectedChannel := range c.ConnectedChannels {
+		if connectedChannel == channel {
+			return true
+		}
+	}
+
+	return false
+}
