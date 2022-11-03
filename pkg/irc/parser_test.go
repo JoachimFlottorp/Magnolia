@@ -109,7 +109,7 @@ func TestCanParsePRIVMSG(t *testing.T) {
 				Raw:     "@badge-info=subscriber/17;badges=subscriber/12,game-developer/1;color=#FFF2D8;display-name=MarkZynk;emotes=;first-msg=0;flags=;historical=1;id=f55f5e50-490e-4c5e-bb86-bfaef95a9916;mod=0;returning-chatter=0;rm-received-ts=1666921045502;room-id=22484632;subscriber=1;tmi-sent-ts=1666921045293;turbo=0;user-id=88492428;user-type= :markzynk!markzynk@markzynk.tmi.twitch.tv PRIVMSG #forsen :\u0001ACTION AlienPls\u0001",
 				Channel: "forsen",
 				User:    "markzynk",
-				Message: "\u0001ACTION AlienPls\u0001",
+				Message: "AlienPls",
 			},
 		},
 		{
