@@ -29,6 +29,7 @@ jobs:
       - name: Get Dependencies
         run: |
           sudo apt install -y make
+          cd protobuf; npm ci
           make proto
           go get -v -t -d ./...
 
