@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/JoachimFlottorp/GoCommon/cron"
+	"github.com/JoachimFlottorp/magnolia/external/emotes"
+	"github.com/JoachimFlottorp/magnolia/external/emotes/models"
 	recentmessages "github.com/JoachimFlottorp/magnolia/external/recent-messages"
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
@@ -143,14 +145,53 @@ func main() {
 		cronMan := cron.NewManager(gCtx, false)
 
 		cronMan.Add(cron.CronOptions{
-			Name: "updateRecentMessageBroker",
-			Spec: "*/5 * * * *",
+			Name:   "updateRecentMessageBroker",
+			Spec:   "*/5 * * * *",
 			RunNow: false,
-			Cmd: func () { updateRecentMessageBroker(gCtx, gCtx.Inst().Mongo) },
+			Cmd:    func() { updateRecentMessageBroker(gCtx, gCtx.Inst().Mongo) },
+		})
+
+		cronMan.Add(cron.CronOptions{
+			Name:   "UpdateEmotes",
+			Spec:   "*/10 * * * *",
+			RunNow: false,
+			Cmd: func() {
+				channels, err := gCtx.Inst().Mongo.Collection(mongo.CollectionTwitch).Find(gCtx, bson.M{})
+
+				if err != nil {
+					zap.S().Errorw("Failed to get channels", "error", err)
+					return
+				}
+
+				for channels.Next(gCtx) {
+					var channel mongo.TwitchChannel
+
+					err := channels.Decode(&channel)
+
+					if err != nil {
+						zap.S().Errorw("Failed to decode channel", "error", err)
+						continue
+					}
+
+					e, err := emotes.GetEmotes(gCtx, models.ChannelIdentifier{
+						ID:   channel.TwitchID,
+						Name: channel.TwitchName,
+					})
+
+					if err != nil {
+						zap.S().Errorw("Failed to get emotes", "error", err)
+						continue
+					}
+
+					e.Save(gCtx, gCtx.Inst().Redis, channel.TwitchName)
+
+					zap.S().Infow("Updated emotes", "channel", channel.TwitchName)
+				}
+			},
 		})
 
 		cronMan.Start()
-	
+
 		<-gCtx.Done()
 	}()
 

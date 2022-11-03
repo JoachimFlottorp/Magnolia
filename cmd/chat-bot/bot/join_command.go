@@ -35,8 +35,8 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 		b.Say(ctx.Channel(), "Provide a channel FeelsDankMan")
 		return nil
 	}
-	
-	mongoChannel := mongo.TwitchChannel {
+
+	mongoChannel := mongo.TwitchChannel{
 		TwitchName: channel,
 	}
 
@@ -47,7 +47,7 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 	} else if err != mongo.ErrNoDocuments {
 		return err
 	} else if err == mongo.ErrNoDocuments {
-		req := pb.SubChannelReq {
+		req := pb.SubChannelReq{
 			Channel: channel,
 		}
 
@@ -59,16 +59,16 @@ func (c joinCommand) Execute(ctx cmdctx.Context, b Bot, args []string) error {
 		err = c.Ctx.Inst().RMQ.Publish(c.Ctx, rabbitmq.PublishSettings{
 			RoutingKey: rabbitmq.QueueJoinRequest,
 			Msg: amqp091.Publishing{
-				Body: reqByte,
+				Body:        reqByte,
 				ContentType: "application/protobuf; twitch.SubChannelReq",
 			},
 		})
-		
+
 		if err != nil {
 			return err
 		}
 
-		b.Say(ctx.Channel(), "Joining channel " + channel + " FeelsDankMan")
+		b.Say(ctx.Channel(), "Joining channel "+channel+" FeelsDankMan")
 	}
 
 	return nil

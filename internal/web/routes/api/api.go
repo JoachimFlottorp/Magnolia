@@ -41,7 +41,7 @@ func (a *Route) Handler(w http.ResponseWriter, r *http.Request) response.RouterR
 	return response.
 		OkResponse().
 		SetJSON(HealthResponse{
-			Name: "api",
+			Name:   "api",
 			Uptime: int64(t.UnixMilli()),
 		}).
 		Build()

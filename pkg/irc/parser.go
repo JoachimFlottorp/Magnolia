@@ -144,7 +144,7 @@ func parsePrivmsg(m *ircMessage) *PrivmsgMessage {
 
 	/* /me commands */
 	if strings.HasPrefix(msg, "\x01ACTION") && strings.HasSuffix(msg, "\x01") {
-		msg = strings.TrimPrefix(msg, "\x01ACTION")
+		msg = strings.TrimPrefix(msg, "\x01ACTION ")
 		msg = strings.TrimSuffix(msg, "\x01")
 	}
 
