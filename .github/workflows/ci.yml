@@ -19,8 +19,18 @@ jobs:
         with:
           go-version: 1.19.2
 
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+
+      - uses: actions/setup-node@v3
+        with:
+        node-version: 18
+
       - name: Get Dependencies
-        run: go get -v -t -d ./...
+        run: |
+          sudo apt install -y make
+          go get -v -t -d ./...
+          make proto
 
       - name: Generate Codecov
         run: go test -race -v -count=1 -coverprofile=coverage.out ./...
