@@ -123,6 +123,9 @@ func (c *IrcConnection) readLoop(wg *sync.WaitGroup) {
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				zap.S().Errorw("Unexpected close from websocket error", "error", err)
+			} else if err == websocket.ErrCloseSent {
+				zap.S().Errorw("Close sent from websocket error", "error", err)
+				c.Reconnect()
 			} else {
 				zap.S().Errorw("Failed to read message from server", "error", err)
 			}
