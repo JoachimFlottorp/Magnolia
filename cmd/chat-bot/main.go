@@ -28,12 +28,8 @@ var (
 func init() {
 	flag.Parse()
 
-	if *debug {
-		b, _ := zap.NewDevelopmentConfig().Build()
-		zap.ReplaceGlobals(b)
-	} else {
-		b, _ := zap.NewProductionConfig().Build()
-		zap.ReplaceGlobals(b)
+	if err := config.ReplaceZapGlobal(*debug); err != nil {
+		panic(err)
 	}
 
 	if cfg == nil {
