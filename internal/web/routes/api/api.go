@@ -7,6 +7,7 @@ import (
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/web/response"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
+	"github.com/JoachimFlottorp/magnolia/internal/web/routes/api/markov"
 
 	"github.com/gorilla/mux"
 )
@@ -31,7 +32,7 @@ func (a *Route) Configure() router.RouteConfig {
 		URI:    "/api",
 		Method: []string{http.MethodGet},
 		Children: []router.Route{
-			NewMarkovRoute(a.Ctx),
+			markov.NewGetRoute(a.Ctx),
 		},
 		Middleware: []mux.MiddlewareFunc{},
 	}

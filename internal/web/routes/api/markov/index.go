@@ -1,4 +1,4 @@
-package api
+package markov
 
 import (
 	"context"
@@ -61,7 +61,7 @@ type MarkovRoute struct {
 	cronMan    *cron.Manager
 }
 
-func NewMarkovRoute(gCtx ctx.Context) router.Route {
+func NewGetRoute(gCtx ctx.Context) router.Route {
 	_, err := gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
 		Name: rabbitmq.QueueJoinRequest,
 	})
@@ -95,9 +95,11 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 
 func (a *MarkovRoute) Configure() router.RouteConfig {
 	return router.RouteConfig{
-		URI:        "/markov",
-		Method:     []string{http.MethodGet},
-		Children:   []router.Route{},
+		URI:    "/markov",
+		Method: []string{http.MethodGet},
+		Children: []router.Route{
+			NewListRoute(a.Ctx),
+		},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }
