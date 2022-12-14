@@ -91,6 +91,10 @@ func (b *bot) Run() error {
 						continue
 					}
 
+					if !strings.HasPrefix(msg.Message, b.prefix) {
+						continue
+					}
+
 					commandName, args := cleanInput(b.prefix, msg.Message)
 					if commandName == "" {
 						continue

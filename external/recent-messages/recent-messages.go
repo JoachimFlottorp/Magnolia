@@ -6,6 +6,12 @@
 
 package recentmessages
 
+import (
+	"sync"
+
+	"go.uber.org/zap"
+)
+
 type EndpointName string
 
 const (
@@ -15,16 +21,29 @@ const (
 
 type Endpoint interface {
 	Url() string
-	MakeRequest([]string) error
+	MakeRequest(string) error
 }
 
 var endpoints = map[EndpointName]Endpoint{
 	EndpointSnakes: snakes(),
 }
 
-func Request(endpoint EndpointName, channels []string) error {
+func Request(endpoint EndpointName, channels []string) {
+	wg := &sync.WaitGroup{}
+
 	if e, ok := endpoints[endpoint]; ok {
-		return e.MakeRequest(channels)
+		for _, channel := range channels {
+			wg.Add(1)
+			go func(channel string) {
+				defer wg.Done()
+
+				err := e.MakeRequest(channel)
+				if err != nil {
+					zap.S().Errorw("Failed to request recent messages", "error", err)
+				}
+			}(channel)
+		}
 	}
-	return nil
+
+	wg.Wait()
 }

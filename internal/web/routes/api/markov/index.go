@@ -1,10 +1,11 @@
-package api
+package markov
 
 import (
 	"context"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/JoachimFlottorp/GoCommon/assert"
 	"github.com/JoachimFlottorp/GoCommon/cron"
@@ -61,7 +62,7 @@ type MarkovRoute struct {
 	cronMan    *cron.Manager
 }
 
-func NewMarkovRoute(gCtx ctx.Context) router.Route {
+func NewGetRoute(gCtx ctx.Context) router.Route {
 	_, err := gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
 		Name: rabbitmq.QueueJoinRequest,
 	})
@@ -95,9 +96,11 @@ func NewMarkovRoute(gCtx ctx.Context) router.Route {
 
 func (a *MarkovRoute) Configure() router.RouteConfig {
 	return router.RouteConfig{
-		URI:        "/markov",
-		Method:     []string{http.MethodGet},
-		Children:   []router.Route{},
+		URI:    "/markov",
+		Method: []string{http.MethodGet},
+		Children: []router.Route{
+			NewListRoute(a.Ctx),
+		},
 		Middleware: []mux.MiddlewareFunc{},
 	}
 }
@@ -310,6 +313,12 @@ func (a *MarkovRoute) genMarkov(ctx context.Context, corrId uuid.UUID, data []st
 						return
 					}
 					markovChan <- res
+					close(markovChan)
+					delete(a.markovReqs, corrId.String())
+					return
+				}
+			case <-time.After(10 * time.Second):
+				{
 					close(markovChan)
 					delete(a.markovReqs, corrId.String())
 					return

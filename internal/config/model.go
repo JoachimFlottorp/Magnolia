@@ -1,5 +1,10 @@
 package config
 
+import (
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
 type Config struct {
 	Redis struct {
 		Username string `json:"username"`
@@ -33,4 +38,29 @@ type Config struct {
 			Prefix   string   `json:"prefix"`
 		} `json:"bot"`
 	} `json:"twitch"`
+}
+
+func ReplaceZapGlobal(isDebug bool) error {
+	config := &zap.Config{
+		Encoding:         "console",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}
+
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	if isDebug {
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	} else {
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	}
+
+	if a, err := config.Build(); err != nil {
+		return err
+	} else {
+		zap.ReplaceGlobals(a)
+	}
+
+	return nil
 }

@@ -37,12 +37,9 @@ var (
 
 func init() {
 	flag.Parse()
-	if *debug {
-		b, _ := zap.NewDevelopmentConfig().Build()
-		zap.ReplaceGlobals(b)
-	} else {
-		b, _ := zap.NewProductionConfig().Build()
-		zap.ReplaceGlobals(b)
+
+	if err := config.ReplaceZapGlobal(*debug); err != nil {
+		panic(err)
 	}
 
 	if cfg == nil {
@@ -286,7 +283,8 @@ func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq)
 	if err := channel.GetByName(gCtx, gCtx.Inst().Mongo); err == mongo.ErrNoDocuments {
 		err = channel.ResolveByIVR(gCtx)
 		if err != nil {
-			zap.S().Errorw("Failed to resolve channel by IVR", "error", err)
+			zap.S().Errorw("Failed to resolve channel by IVR", "error", err, "name", req.Channel)
+			return
 		}
 
 		channel.Save(gCtx, gCtx.Inst().Mongo)

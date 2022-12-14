@@ -37,12 +37,8 @@ var (
 func init() {
 	flag.Parse()
 
-	if *debug {
-		b, _ := zap.NewDevelopmentConfig().Build()
-		zap.ReplaceGlobals(b)
-	} else {
-		b, _ := zap.NewProductionConfig().Build()
-		zap.ReplaceGlobals(b)
+	if err := config.ReplaceZapGlobal(*debug); err != nil {
+		panic(err)
 	}
 
 	if cfg == nil {
@@ -221,10 +217,7 @@ func updateRecentMessageBroker(ctx context.Context, m mongo.Instance) {
 		c = append(c, channel.TwitchName)
 	}
 
-	if err := recentmessages.Request(recentmessages.EndpointSnakes, c); err != nil {
-		zap.S().Errorw("Failed to request recent messages", "error", err)
-		return
-	}
+	recentmessages.Request(recentmessages.EndpointSnakes, c)
 
 	zap.S().Infof("Requested recent messages for %d channels", len(c))
 }
