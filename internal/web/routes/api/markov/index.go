@@ -205,7 +205,7 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 				return c.Next()
 			}
 
-			c.Locals(locals.LocalError, http.StatusInternalServerError)
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
 			return c.Next()
 		}
 

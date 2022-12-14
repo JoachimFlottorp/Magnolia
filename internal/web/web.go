@@ -140,6 +140,10 @@ func (s *Server) afterHandler() fiber.Handler {
 		c.Set("Content-Type", "application/json")
 		t := time.Now()
 
+		if c.Locals(locals.LocalStatus) == nil {
+			c.Locals(locals.LocalStatus, http.StatusOK)
+		}
+
 		statusCode := c.Locals(locals.LocalStatus).(int)
 		body := c.Locals(locals.LocalResponse)
 
