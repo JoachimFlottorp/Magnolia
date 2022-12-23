@@ -92,10 +92,6 @@ func main() {
 		}
 	}
 
-	wg := sync.WaitGroup{}
-
-	done := make(chan any)
-
 	{
 		gCtx.Inst().RMQ, err = rabbitmq.New(gCtx, &rabbitmq.NewInstanceSettings{
 			Address: gCtx.Config().RabbitMQ.URI,
@@ -111,11 +107,7 @@ func main() {
 			zap.S().Fatalw("Failed to create rabbitmq queue", "error", err)
 		}
 
-		wg.Add(1)
-
 		go func() {
-			defer wg.Done()
-
 			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
 				Queue: rabbitmq.QueueJoinRequest,
 			})
@@ -139,11 +131,7 @@ func main() {
 			}
 		}()
 
-		wg.Add(1)
-
 		go func() {
-			defer wg.Done()
-
 			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
 				Queue: rabbitmq.QueuePartRequest,
 			})
@@ -178,6 +166,10 @@ func main() {
 			}
 		}()
 	}
+
+	wg := sync.WaitGroup{}
+
+	done := make(chan any)
 
 	go func() {
 		<-doneSig

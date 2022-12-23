@@ -16,8 +16,6 @@ import (
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
 	"github.com/JoachimFlottorp/magnolia/internal/redis"
-	pb "github.com/JoachimFlottorp/magnolia/protobuf"
-	"google.golang.org/protobuf/proto"
 
 	"go.uber.org/zap"
 )
@@ -92,15 +90,6 @@ func main() {
 		}
 	}
 
-	botConn, err := bot.NewBot(gCtx, bot.Credentials{
-		Username: gCtx.Config().Twitch.Bot.Username,
-		Password: gCtx.Config().Twitch.Bot.Password,
-	})
-
-	if err != nil {
-		zap.S().Fatalw("Failed to create bot instance", "error", err)
-	}
-
 	wg := sync.WaitGroup{}
 
 	done := make(chan any)
@@ -130,45 +119,16 @@ func main() {
 	go func() {
 		defer wg.Done()
 
-		/* TODO: bad design */
-		msg, err := gCtx.Inst().Redis.Subscribe(gCtx, "twitch:chat-logger:join")
+		b, err := bot.NewBot(gCtx, bot.Credentials{
+			Username: gCtx.Config().Twitch.Bot.Username,
+			Password: gCtx.Config().Twitch.Bot.Password,
+		})
+
 		if err != nil {
-			zap.S().Fatalw("Failed to subscribe to redis channel", "error", err)
+			zap.S().Fatalw("Failed to create bot instance", "error", err)
 		}
 
-		for {
-			select {
-			case <-gCtx.Done():
-				{
-					return
-				}
-
-			case m := <-msg:
-				{
-					req := &pb.SubChannelReq{}
-					err = proto.Unmarshal([]byte(m), req)
-					if err != nil {
-						zap.S().Fatalw("Failed to unmarshal rabbitmq message", "error", err)
-						continue
-					}
-
-					if req.Channel == "" {
-						return
-					}
-
-					botConn.Join(req.Channel)
-				}
-			}
-		}
-
-	}()
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		err = botConn.Run()
+		err = b.Run()
 
 		if err != nil {
 			zap.S().Fatalw("Failed to run bot", "error", err)

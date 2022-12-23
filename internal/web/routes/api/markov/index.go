@@ -141,61 +141,9 @@ func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.R
 				Build()
 		}
 
-		storedData, err := a.Ctx.Inst().Redis.GetAllList(c.Context(), key)
-		if err != nil {
-			if err != redis.Nil {
-				zap.S().Errorf("Failed to get channel data from redis: %s", err)
-
-				c.Locals(locals.LocalError, http.StatusInternalServerError)
-			}
-
-			req := pb.SubChannelReq{
-				Channel: channel,
-			}
-
-			reqByte, err := proto.Marshal(&req)
-			if err != nil {
-				zap.S().Errorw("Failed to marshal protobuf message", "error", err)
-
-				c.Locals(locals.LocalError, http.StatusInternalServerError)
-			}
-
-			err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
-				RoutingKey: rabbitmq.QueueJoinRequest,
-				Msg: amqp091.Publishing{
-					Body:        reqByte,
-					ContentType: "application/protobuf; twitch.SubChannelReq",
-				},
-			})
-
-			if err != nil {
-				zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
-
-				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-				c.Locals(locals.LocalError, "Chat logger is not available")
-
-				return c.Next()
-			}
-
-			if err := a.Ctx.Inst().Redis.Publish(c.Context(), "twitch:chat-logger:join", reqByte); err != nil {
-				zap.S().Errorw("Failed to publish to redis", "error", err)
-
-				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-				c.Locals(locals.LocalError, "Chat logger is not available")
-
-				return c.Next()
-			}
-
-			c.Locals(locals.LocalStatus, http.StatusNotFound)
-			c.Locals(locals.LocalError, ErrNoData)
-
-			return c.Next()
-		} else if l := len(storedData); l < 100 {
-			c.Locals(locals.LocalStatus, http.StatusNotFound)
-			c.Locals(locals.LocalError, ErrNotEnoughData(l))
-
-			return c.Next()
-		} else if !a.isAlive {
+		req := pb.SubChannelReq{
+			Channel: channel,
+		}
 
 		reqByte, err := proto.Marshal(&req)
 		if err != nil {
