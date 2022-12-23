@@ -161,6 +161,15 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 				return c.Next()
 			}
 
+			if err := a.Ctx.Inst().Redis.Publish(c.Context(), "twitch:chat-logger:join", reqByte); err != nil {
+				zap.S().Errorw("Failed to publish to redis", "error", err)
+
+				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+				c.Locals(locals.LocalError, "Chat logger is not available")
+
+				return c.Next()
+			}
+
 			c.Locals(locals.LocalStatus, http.StatusNotFound)
 			c.Locals(locals.LocalError, ErrNoData)
 
@@ -171,7 +180,6 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 
 			return c.Next()
 		} else if !a.isAlive {
-
 			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
 			c.Locals(locals.LocalError, ErrMarkovNotAlive)
 
