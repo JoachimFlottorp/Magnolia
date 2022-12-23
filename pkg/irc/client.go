@@ -81,8 +81,8 @@ func (c *IrcConnection) Connect() error {
 	return nil
 }
 
-func (c *IrcConnection) Disconnect() {
-	c.Conn.Close()
+func (c *IrcConnection) Disconnect() error {
+	return c.Conn.Close()
 }
 
 func (c *IrcConnection) Reconnect() {

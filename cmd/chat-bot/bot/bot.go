@@ -125,6 +125,14 @@ func (b *bot) Run() error {
 	return nil
 }
 
+func (b *bot) Stop() error {
+	return b.irc.Disconnect()
+}
+
+func (b *bot) Join(channel string) {
+	b.irc.Join(channel)
+}
+
 func (b *bot) Say(channel, message string, args ...interface{}) {
 	b.irc.Send(fmt.Sprintf("PRIVMSG #%s :%s", channel, fmt.Sprintf(message, args...)))
 }
