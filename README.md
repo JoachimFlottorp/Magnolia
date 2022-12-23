@@ -39,3 +39,8 @@ The chat-bot is a pretty simple interface for manually joining or parting a chan
 | leave   | Parts the specified channel, clearing all of its data |
 
 It will only listen to messages which start with the *Prefix* and users that matches the uid given in the configuration file. You can find your accounts user-id [here](https://www.twitchdatabase.com/channels/melon095)
+
+
+### Privacy And Policy
+
+Magnolia collects public chat messages for generating markov chains, however magnolia does NOT log usernames and does NOT have the ability to link messages to a specific users. Chat messages are deleted once a certain threshold is met.
