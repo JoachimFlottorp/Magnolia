@@ -5,12 +5,11 @@ import (
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
-	"github.com/JoachimFlottorp/magnolia/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/locals"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
+	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
-
-	"github.com/gorilla/mux"
 )
 
 // swagger:response MarkovListResponse
@@ -33,10 +32,8 @@ func NewListRoute(gCtx ctx.Context) router.Route {
 
 func (a *ListRoute) Configure() router.RouteConfig {
 	return router.RouteConfig{
-		URI:        "/list",
-		Method:     []string{http.MethodGet},
-		Children:   []router.Route{},
-		Middleware: []mux.MiddlewareFunc{},
+		URI:    "/list",
+		Method: []string{http.MethodGet},
 	}
 }
 
@@ -46,37 +43,35 @@ func (a *ListRoute) Configure() router.RouteConfig {
 //
 //	Responses:
 //		200: MarkovListResponse
-func (a *ListRoute) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
-	cur, err := a.Ctx.Inst().Mongo.Collection(mongo.CollectionTwitch).Find(r.Context(), bson.D{})
-	if err != nil {
-		zap.S().Errorw("failed to find channels", "error", err)
+func (a *ListRoute) Handler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		cur, err := a.Ctx.Inst().Mongo.Collection(mongo.CollectionTwitch).Find(c.Context(), bson.D{})
+		if err != nil {
+			zap.S().Errorw("failed to find channels", "error", err)
 
-		return response.
-			Error().
-			InternalServerError().
-			Build()
-	}
-
-	var resp MarkovListResponse
-	for cur.Next(r.Context()) {
-		var channel mongo.TwitchChannel
-		if err := cur.Decode(&channel); err != nil {
-			zap.S().Errorw("failed to decode channel", "error", err)
-
-			return response.
-				Error().
-				InternalServerError().
-				Build()
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+			return c.Next()
 		}
 
-		resp.Channels = append(resp.Channels, basicChannel{
-			Username: channel.TwitchName,
-			UserID:   channel.TwitchID,
-		})
-	}
+		var resp MarkovListResponse
+		for cur.Next(c.Context()) {
+			var channel mongo.TwitchChannel
+			if err := cur.Decode(&channel); err != nil {
+				zap.S().Errorw("failed to decode channel", "error", err)
 
-	return response.
-		OkResponse().
-		SetJSON(resp).
-		Build()
+				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+				return c.Next()
+			}
+
+			resp.Channels = append(resp.Channels, basicChannel{
+				Username: channel.TwitchName,
+				UserID:   channel.TwitchID,
+			})
+		}
+
+		c.Locals(locals.LocalStatus, http.StatusOK)
+		c.Locals(locals.LocalResponse, resp)
+
+		return c.Next()
+	}
 }

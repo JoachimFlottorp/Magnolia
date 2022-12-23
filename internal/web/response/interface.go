@@ -21,30 +21,3 @@ type ApiResponse struct {
 	// Present if the request failed, otherwise null
 	Error string `json:"error"`
 }
-
-// RouterResponse defines the response of every handler
-type RouterResponse struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       json.RawMessage
-	Error      error
-	UUID       uuid.UUID
-}
-
-// RouterErrorResponse defines a builder for creating a RouterResponse
-type RouterResponseBuilder interface {
-	SetStatusCode(int) RouterResponseBuilder
-	SetBody(string) RouterResponseBuilder
-	SetJSON(interface{}) RouterResponseBuilder
-	SetHeader(string, string) RouterResponseBuilder
-	SetCustomReqID(uuid.UUID) RouterResponseBuilder
-	Build() RouterResponse
-}
-
-type ErrorResponseBuilder interface {
-	RouterResponseBuilder
-
-	InternalServerError(...string) ErrorResponseBuilder
-	NotFound(...string) ErrorResponseBuilder
-	BadRequest(...string) ErrorResponseBuilder
-}

@@ -1,21 +1,25 @@
 package router
 
 import (
-	"net/http"
-
-	"github.com/JoachimFlottorp/magnolia/internal/web/response"
-	"github.com/gorilla/mux"
+	"github.com/JoachimFlottorp/magnolia/internal/ctx"
+	"github.com/gofiber/fiber/v2"
 )
+
+type RouteInitializerFunc func(ctx.Context) Route
 
 // RouteConfig: Specifies the configuration of a route.
 type RouteConfig struct {
 	URI        string
 	Method     []string
-	Children   []Route
-	Middleware []mux.MiddlewareFunc
+	Children   []RouteInitializerFunc
+	Middleware []Middleware
 }
 
 type Route interface {
 	Configure() RouteConfig
-	Handler(http.ResponseWriter, *http.Request) response.RouterResponse
+	Handler() fiber.Handler
+}
+
+type Middleware interface {
+	Handler() fiber.Handler
 }

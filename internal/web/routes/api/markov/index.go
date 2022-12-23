@@ -11,23 +11,23 @@ import (
 	"github.com/JoachimFlottorp/GoCommon/cron"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
-	"github.com/JoachimFlottorp/magnolia/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/locals"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 	pb "github.com/JoachimFlottorp/magnolia/protobuf"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/rabbitmq/amqp091-go"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
-
-	"github.com/gorilla/mux"
 )
 
 var (
 	ErrNoData           = "no data"
 	ErrTooLong          = "took to long to generate markov chain"
 	ErrUnableToGenerate = "unable to generate markov chain"
+	ErrMarkovNotAlive   = "markov generator is not alive"
 )
 
 func ErrNotEnoughData(len int) string {
@@ -98,10 +98,9 @@ func (a *MarkovRoute) Configure() router.RouteConfig {
 	return router.RouteConfig{
 		URI:    "/markov",
 		Method: []string{http.MethodGet},
-		Children: []router.Route{
-			NewListRoute(a.Ctx),
+		Children: []router.RouteInitializerFunc{
+			NewListRoute,
 		},
-		Middleware: []mux.MiddlewareFunc{},
 	}
 }
 
@@ -111,126 +110,109 @@ func (a *MarkovRoute) Configure() router.RouteConfig {
 //
 //	Responses:
 //		200: MarkovResponse
-func (a *MarkovRoute) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
-	var channel string
-	var seed string
+func (a *MarkovRoute) Handler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		channel := c.Query("channel", "")
+		seed := c.Query("seed", "")
 
-	channel = r.URL.Query().Get("channel")
-	key := fmt.Sprintf("twitch:%s:chat-data", channel)
-	u := uuid.New()
+		key := fmt.Sprintf("twitch:%s:chat-data", channel)
+		u := c.Locals(locals.LocalRequestID).(uuid.UUID)
 
-	if channel == "" {
-		return response.
-			Error().
-			BadRequest("Missing channel parameter").
-			Build()
-	}
+		if channel == "" {
+			c.Locals(locals.LocalStatus, http.StatusBadRequest)
+			c.Locals(locals.LocalError, "Missing channel parameter")
 
-	if s := r.URL.Query().Get("seed"); s != "" {
-		seed = s
-	}
-
-	storedData, err := a.Ctx.Inst().Redis.GetAllList(r.Context(), key)
-	if err != nil {
-		if err != redis.Nil {
-			zap.S().Errorf("Failed to get channel data from redis: %s", err)
-
-			return response.
-				Error().
-				InternalServerError().
-				Build()
+			return c.Next()
 		}
 
-		req := pb.SubChannelReq{
-			Channel: channel,
-		}
-
-		reqByte, err := proto.Marshal(&req)
+		storedData, err := a.Ctx.Inst().Redis.GetAllList(c.Context(), key)
 		if err != nil {
-			zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+			if err != redis.Nil {
+				zap.S().Errorf("Failed to get channel data from redis: %s", err)
 
-			return response.
-				Error().
-				InternalServerError().
-				Build()
+				c.Locals(locals.LocalError, http.StatusInternalServerError)
+			}
+
+			req := pb.SubChannelReq{
+				Channel: channel,
+			}
+
+			reqByte, err := proto.Marshal(&req)
+			if err != nil {
+				zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+
+				c.Locals(locals.LocalError, http.StatusInternalServerError)
+			}
+
+			err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
+				RoutingKey: rabbitmq.QueueJoinRequest,
+				Msg: amqp091.Publishing{
+					Body:        reqByte,
+					ContentType: "application/protobuf; twitch.SubChannelReq",
+				},
+			})
+
+			if err != nil {
+				zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
+
+				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+				c.Locals(locals.LocalError, "Chat logger is not available")
+
+				return c.Next()
+			}
+
+			c.Locals(locals.LocalStatus, http.StatusNotFound)
+			c.Locals(locals.LocalError, ErrNoData)
+
+			return c.Next()
+		} else if l := len(storedData); l < 100 {
+			c.Locals(locals.LocalStatus, http.StatusNotFound)
+			c.Locals(locals.LocalError, ErrNotEnoughData(l))
+
+			return c.Next()
+		} else if !a.isAlive {
+
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+			c.Locals(locals.LocalError, ErrMarkovNotAlive)
+
+			return c.Next()
 		}
 
-		err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
-			RoutingKey: rabbitmq.QueueJoinRequest,
-			Msg: amqp091.Publishing{
-				Body:        reqByte,
-				ContentType: "application/protobuf; twitch.SubChannelReq",
-			},
-		})
+		markovChan, err := a.genMarkov(c.Context(), u, storedData, seed)
 
 		if err != nil {
-			zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
-
-			return response.
-				Error().
-				InternalServerError("Chat logger not available").
-				Build()
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+			return c.Next()
 		}
 
-		return response.
-			Error().
-			NotFound(ErrNoData).
-			Build()
-	} else if l := len(storedData); l < 100 {
-		return response.
-			Error().
-			NotFound(ErrNotEnoughData(l)).
-			Build()
-	} else if !a.isAlive {
-		return response.
-			Error().
-			InternalServerError("Markov generator is not alive").
-			Build()
-	}
+		result, ok := <-markovChan
 
-	markovChan, err := a.genMarkov(r.Context(), u, storedData, seed)
+		if !ok {
+			zap.S().Errorw("Took to long to generate markov chain", "channel", channel)
 
-	if err != nil {
-		return response.
-			Error().
-			InternalServerError().
-			SetCustomReqID(u).
-			Build()
-	}
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+			c.Locals(locals.LocalError, ErrTooLong)
 
-	result, ok := <-markovChan
-
-	if !ok {
-		zap.S().Errorw("Took to long to generate markov chain", "channel", channel)
-
-		return response.
-			Error().
-			InternalServerError(ErrTooLong).
-			SetCustomReqID(u).
-			Build()
-	}
-
-	if result.Error != nil {
-
-		if strings.HasPrefix(*result.Error, "Failed to build a sentence after") {
-			return response.
-				Error().
-				BadRequest(ErrUnableToGenerate).
-				SetCustomReqID(u).
-				Build()
+			return c.Next()
 		}
 
-		return response.
-			Error().
-			InternalServerError().
-			SetCustomReqID(u).
-			Build()
+		if result.Error != nil {
+
+			if strings.HasPrefix(*result.Error, "Failed to build a sentence after") {
+				c.Locals(locals.LocalStatus, http.StatusNotFound)
+				c.Locals(locals.LocalError, ErrUnableToGenerate)
+
+				return c.Next()
+			}
+
+			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
+			return c.Next()
+		}
+
+		c.Locals(locals.LocalResponse, MarkovResponse{Markov: result.Result})
+
+		return c.Next()
 	}
-
-	return response.OkResponse().
-		SetJSON(MarkovResponse{Markov: result.Result}).
-		Build()
-
 }
 
 func (a *MarkovRoute) handleMarkovRequests() {

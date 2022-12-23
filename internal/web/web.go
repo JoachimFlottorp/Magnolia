@@ -13,200 +13,185 @@ package web
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
+	"github.com/JoachimFlottorp/magnolia/internal/web/locals"
 	"github.com/JoachimFlottorp/magnolia/internal/web/response"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 	"github.com/JoachimFlottorp/magnolia/internal/web/routes/api"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
-type HandlerFunc func(w http.ResponseWriter, r *http.Request) response.RouterResponse
-
-type l struct {
-	logger *zap.SugaredLogger
-}
-
-func (log *l) Write(p []byte) (int, error) {
-	log.logger.Errorw("HTTPError", "error", string(p))
-	return len(p), nil
-}
-
 type Server struct {
-	gCtx     ctx.Context
-	listener net.Listener
-	router   *mux.Router
+	gCtx ctx.Context
+	App  *fiber.App
 }
 
 func New(gCtx ctx.Context) error {
 	port := gCtx.Config().Http.Port
-	addr := fmt.Sprintf("%s:%d", "0.0.0.0", port)
+	addr := fmt.Sprintf("%s:%d", "0.0.0.0", uint16(port))
 
 	s := Server{
 		gCtx: gCtx,
+		App: fiber.New(fiber.Config{
+			ErrorHandler: func(c *fiber.Ctx, err error) error {
+				if strings.HasPrefix(c.Path(), "/api") {
+
+					res, _ := json.Marshal(&response.ApiResponse{
+						Success:   false,
+						RequestID: uuid.New(),
+						Timestamp: time.Now(),
+						Error:     "No such endpoint",
+					})
+
+					c.Set("Content-Type", "application/json")
+					c.Status(http.StatusNotFound)
+					return c.Send(res)
+				}
+
+				c.Status(http.StatusNotFound)
+				c.Set("Content-Type", "text/html")
+				return c.SendString("404 - Not found")
+			},
+		}),
 	}
 
-	var err error
-	s.listener, err = net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-
-	s.router = mux.NewRouter().StrictSlash(false)
-
-	logger := log.New(&l{zap.S()}, "", 0)
-
-	server := http.Server{
-		Handler:      s.router,
-		ErrorLog:     logger,
-		ReadTimeout:  20 * time.Second,
-		WriteTimeout: 20 * time.Second,
-	}
-
-	s.router.Path("/").Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := "web/public/index.html"
-		http.ServeFile(w, r, f)
-	}))
-
-	s.router.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("web/public"))))
-
-	s.setupRoutes(api.NewApi(gCtx), s.router)
-
-	s.router.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path[:4] == "/api" {
-			res, _ := json.Marshal(&response.ApiResponse{
-				Success:   false,
-				RequestID: uuid.New(),
-				Timestamp: time.Now(),
-				Error:     http.StatusText(http.StatusNotFound),
-			})
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusNotFound)
-			w.Write(res)
-			return
-		}
-
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("404 - Not found"))
+	s.App.Get("/", func(c *fiber.Ctx) error {
+		return c.SendFile("web/public/index.html")
 	})
+
+	s.App.Static("/public", "web/public")
+
+	s.setupRoutes(api.NewApi(gCtx), s.App, "")
 
 	go func() {
 		<-gCtx.Done()
 
-		_ = server.Shutdown(gCtx)
+		_ = s.App.Shutdown()
 	}()
 
-	go func() {
-		time.Sleep(1 * time.Second)
-		select {
-		case <-gCtx.Done():
-			return
-		default:
-			zap.S().Infof("Listening on %s", addr)
-		}
-	}()
+	zap.S().Infof("Starting server on %s", addr)
 
-	return server.Serve(s.listener)
+	return s.App.Listen(addr)
 }
 
-func (s *Server) setupRoutes(r router.Route, parent *mux.Router) {
+func (s *Server) setupRoutes(r router.Route, parent fiber.Router, parentName string) {
 	routeConfig := r.Configure()
 
-	route := parent.
-		PathPrefix(routeConfig.URI).
-		Methods(routeConfig.Method...).
-		Subrouter().
-		StrictSlash(false)
+	routeGroup := parent.Group(routeConfig.URI)
 
-	// Allow endpoint without trailing slash
-	route.HandleFunc("", s.wrapRouterHandler(r.Handler))
-	route.HandleFunc("/", s.wrapRouterHandler(r.Handler))
+	handlers := []fiber.Handler{}
 
-	zap.S().
-		With("route", routeConfig.URI).
-		Debug("Setup route")
-
-	for _, child := range routeConfig.Children {
-		s.setupRoutes(child, route)
-	}
+	handlers = append(handlers, s.beforeHandler())
 
 	for _, middleware := range routeConfig.Middleware {
-		route.Use(middleware)
+		handlers = append(handlers, middleware.Handler())
+	}
+	handlers = append(handlers, r.Handler())
+
+	handlers = append(handlers, s.afterHandler())
+
+	for _, method := range routeConfig.Method {
+		switch method {
+		case http.MethodGet:
+			{
+				routeGroup.Get("", handlers...)
+				routeGroup.Get("/", handlers...)
+			}
+		case http.MethodPost:
+			{
+				routeGroup.Post("", handlers...)
+				routeGroup.Post("/", handlers...)
+			}
+		default:
+			{
+				zap.S().Errorf("Unknown method %s", method)
+			}
+		}
+
+		zap.S().Infof("Registered route %s %s", method, parentName+routeConfig.URI)
+	}
+
+	for _, routeChildren := range routeConfig.Children {
+		childrenRouteConfig := routeChildren(s.gCtx)
+
+		s.setupRoutes(childrenRouteConfig, routeGroup, parentName+routeConfig.URI)
 	}
 }
 
-func (s *Server) wrapRouterHandler(fn HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+func (s *Server) beforeHandler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		c.Locals(locals.LocalRequestID, uuid.New())
 
-		res := fn(w, r)
+		return c.Next()
+	}
+}
+
+func (s *Server) afterHandler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		c.Set("Content-Type", "application/json")
 		t := time.Now()
 
-		for k, v := range res.Headers {
-			w.Header().Set(k, v)
+		if c.Locals(locals.LocalStatus) == nil {
+			c.Locals(locals.LocalStatus, http.StatusOK)
 		}
 
+		statusCode := c.Locals(locals.LocalStatus).(int)
+		body := c.Locals(locals.LocalResponse)
+
 		apiRes := response.ApiResponse{
-			RequestID: res.UUID,
+			RequestID: c.Locals(locals.LocalRequestID).(uuid.UUID),
 			Timestamp: t,
 		}
 
-		if res.Error != nil {
-			apiRes.Error = res.Error.Error()
+		if statusCode != http.StatusOK {
 			apiRes.Success = false
+
+			err := c.Locals(locals.LocalError)
+			if err != nil {
+				apiRes.Error = fmt.Sprintf("%v", err)
+			} else {
+				apiRes.Error = http.StatusText(statusCode)
+			}
 		} else {
 			apiRes.Success = true
-			apiRes.Data = res.Body
-		}
+			data, err := json.Marshal(body)
+			if err != nil {
+				zap.S().Errorf("Error marshaling response: %v", err)
 
-		go func() {
-			log := mongo.ApiLog{
-				ID:        primitive.NewObjectID(),
-				Timestamp: t,
-				Method:    r.Method,
-				Path:      r.URL.Path,
-				Status:    res.StatusCode,
-				IP:        fmt.Sprintf("%s (%s)", r.Header.Get("X-Forwarded-For"), r.RemoteAddr),
-				UserAgent: r.UserAgent(),
-				Query:     r.URL.Query().Encode(),
-				Body:      string(apiRes.Data),
+				apiRes.Success = false
+				apiRes.Error = http.StatusText(http.StatusInternalServerError)
 			}
 
-			if !apiRes.Success {
-				log.Error = apiRes.Error
-			}
-
-			s.gCtx.Inst().Mongo.Collection(mongo.CollectionAPILog).InsertOne(s.gCtx, log)
-		}()
-
-		j, err := json.MarshalIndent(apiRes, "", "  ")
-
-		if err != nil {
-			zap.S().Errorw("Failed to marshal response", "error", err)
-
-			j, _ := json.MarshalIndent(&response.ApiResponse{
-				Success:   false,
-				RequestID: uuid.New(),
-				Timestamp: time.Now(),
-				Error:     "Internal server error",
-			}, "", "  ")
-
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write(j)
-			return
+			apiRes.Data = data
 		}
 
-		w.WriteHeader(res.StatusCode)
-		w.Write(j)
+		log := mongo.ApiLog{
+			ID:        primitive.NewObjectID(),
+			Timestamp: t,
+			Method:    c.Method(),
+			URL:       c.OriginalURL(),
+			Status:    fmt.Sprintf("%v", c.Locals(locals.LocalStatus)),
+			IP:        c.Get("X-Forwarded-For", "?"),
+			UserAgent: c.Get("User-Agent", "?"),
+			Body:      string(apiRes.Data),
+		}
+
+		if !apiRes.Success {
+			log.Error = apiRes.Error
+		}
+
+		s.gCtx.Inst().Mongo.Collection(mongo.CollectionAPILog).InsertOne(s.gCtx, log)
+
+		c.Status(statusCode)
+		return c.JSON(apiRes)
 	}
 }

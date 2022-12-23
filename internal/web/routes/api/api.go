@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
-	"github.com/JoachimFlottorp/magnolia/internal/web/response"
+	"github.com/JoachimFlottorp/magnolia/internal/web/locals"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 	"github.com/JoachimFlottorp/magnolia/internal/web/routes/api/markov"
-
-	"github.com/gorilla/mux"
+	"github.com/gofiber/fiber/v2"
 )
 
 var t = time.Now()
@@ -31,19 +30,20 @@ func (a *Route) Configure() router.RouteConfig {
 	return router.RouteConfig{
 		URI:    "/api",
 		Method: []string{http.MethodGet},
-		Children: []router.Route{
-			markov.NewGetRoute(a.Ctx),
+		Children: []router.RouteInitializerFunc{
+			markov.NewGetRoute,
 		},
-		Middleware: []mux.MiddlewareFunc{},
 	}
 }
 
-func (a *Route) Handler(w http.ResponseWriter, r *http.Request) response.RouterResponse {
-	return response.
-		OkResponse().
-		SetJSON(HealthResponse{
+func (a *Route) Handler() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		c.Locals(locals.LocalStatus, http.StatusOK)
+		c.Locals(locals.LocalResponse, HealthResponse{
 			Name:   "api",
 			Uptime: int64(t.UnixMilli()),
-		}).
-		Build()
+		})
+
+		return c.Next()
+	}
 }
