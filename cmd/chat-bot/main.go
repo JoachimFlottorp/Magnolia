@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"sync"
 
 	"github.com/JoachimFlottorp/magnolia/cmd/chat-bot/bot"
@@ -12,10 +11,6 @@ import (
 
 	"go.uber.org/zap"
 )
-
-func init() {
-	flag.Parse()
-}
 
 func main() {
 	conf, err := config.CreateConfig()

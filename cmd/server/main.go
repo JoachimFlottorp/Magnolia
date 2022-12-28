@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"net/http"
 	"sync"
 
@@ -22,10 +21,6 @@ import (
 
 	"go.uber.org/zap"
 )
-
-func init() {
-	flag.Parse()
-}
 
 func main() {
 	conf, err := config.CreateConfig()

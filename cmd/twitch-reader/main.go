@@ -28,10 +28,6 @@ var (
 	botIgnoreList = regexp.MustCompile(`bo?t{1,2}(?:(?:ard)?o|\d|_)*$|^(?:fembajs|veryhag|scriptorex|apulxd|qdc26534|linestats|pepegaboat|sierrapine|charlestonbieber|icecreamdatabase|chatvote|localaniki|rewardmore|gorenmu|0weebs|befriendlier|electricbodybuilder|o?bot(?:bear1{3}0|2465|menti|e|nextdoor)|stream(?:elements|labs))$`)
 )
 
-func init() {
-	flag.Parse()
-}
-
 func main() {
 	conf, err := config.CreateConfig()
 	if err != nil {

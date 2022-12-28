@@ -14,10 +14,6 @@ var (
 	debug = flag.Bool("debug", false, "Enable debug logging")
 )
 
-func init() {
-	flag.Parse()
-}
-
 type Config struct {
 	Redis struct {
 		Username string `toml:"username"`
@@ -78,6 +74,8 @@ func ReplaceZapGlobal(isDebug bool) error {
 	return nil
 }
 func CreateConfig() (*Config, error) {
+	flag.Parse()
+
 	bytes, err := os.ReadFile(*cfg)
 	if err != nil {
 		return nil, err
