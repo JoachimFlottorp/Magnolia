@@ -1,7 +1,6 @@
 {
     "type": "module",
     "scripts": {
-        "preinstall": "cd deps/toml && npm install && npm run build",
         "run": "node --no-warnings --loader ts-node/esm src/index.ts ./../config.toml"
     },
     "devDependencies": {
