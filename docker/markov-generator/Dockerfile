@@ -17,4 +17,4 @@ RUN apk add --no-cache nodejs npm
 WORKDIR /app
 COPY --from=builder /src/markov-generator /app
 
-ENTRYPOINT [ "npm", "run", "run" ]
+ENTRYPOINT [ "node", "--no-warnings", "--loader" "ts-node/esm", "src/index.ts", "/app/config.toml" ]
