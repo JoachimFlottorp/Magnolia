@@ -13,7 +13,7 @@ services:
       - "magnolia"
     restart: unless-stopped
     volumes:
-      - ./config.json:/app/config.json
+      - ./config.toml:/app/config.toml
       - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -28,7 +28,7 @@ services:
       - "magnolia"
     restart: unless-stopped
     volumes:
-      - ./config.json:/app/config.json
+      - ./config.toml:/app/config.toml
       - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -43,7 +43,7 @@ services:
       - "magnolia"
     restart: unless-stopped
     volumes:
-      - ./config.json:/app/config.json
+      - ./config.toml:/app/config.toml
       - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -61,11 +61,11 @@ services:
       - "magnolia"
     restart: unless-stopped
     volumes:
-      - ./config.json:/app/config.json
+      - ./config.toml:/app/config.toml
       - "/etc/localtime:/etc/localtime:ro"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: /app/config.json
+    command: /app/config.toml
       
 networks:
   magnolia:

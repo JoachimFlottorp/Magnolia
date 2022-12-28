@@ -21,7 +21,7 @@ const ARGUMENTS = [
   "--go_opt=paths=source_relative",
   "--go-grpc_out=.",
   "--go-grpc_opt=paths=source_relative",
-  `--plugin=./node_modules/.bin/protoc-gen-ts_proto${isWindows()} --ts_proto_out=.`,
+  `--plugin=./node_modules/.bin/protoc-gen-ts_proto${isWindows()} --ts_proto_out=. --ts_proto_opt=importSuffix=.js`,
 ];
 const DEPS: IDeps = {
   go: [

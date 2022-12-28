@@ -17,4 +17,4 @@ RUN apk add --no-cache nodejs npm
 WORKDIR /app
 COPY --from=builder /src/markov-generator /app
 
-ENTRYPOINT [ "/app/node_modules/.bin/ts-node", "/app/src/index.ts" ]
+ENTRYPOINT [ "npm", "run", "run" ]

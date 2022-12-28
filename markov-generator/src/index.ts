@@ -2,17 +2,19 @@ import type { MarkovGenerateOptions } from 'markov-strings';
 
 import { connect } from 'amqplib';
 
-import { MarkovResponse, MarkovRequest } from './protobuf/markov';
+import { MarkovResponse, MarkovRequest } from './protobuf/markov.js';
 import Markov from 'markov-strings';
+import * as toml from '@gulujs/toml';
+import fs from 'node:fs';
 
-interface Config {
+type Config = {
 	markov: {
 		health_bind: number;
 	};
 	rmq: {
 		uri: string;
 	};
-}
+};
 
 const argv = process.argv.slice(2);
 const args = {
@@ -21,10 +23,12 @@ const args = {
 
 if (!args.config) throw new Error('No config file specified');
 
-const config = require(args.config) as Config;
 const queue = 'markov-generator';
+const configContent = fs.readFileSync(args.config, 'utf-8');
 
 (async () => {
+	const config = toml.parse<Config>(configContent);
+
 	const rmqconnection = await connect(config.rmq.uri);
 	const rmqchannel = await rmqconnection.createChannel();
 
@@ -57,6 +61,8 @@ const queue = 'markov-generator';
 	});
 
 	console.log('Listening for markov requests at', { queue });
+
+	startHealth(config.markov.health_bind);
 })();
 
 const fromProto = (data: Buffer): MarkovRequest => MarkovRequest.decode(data);
@@ -81,8 +87,9 @@ const generateMarkov = (data: string[], seed: string): string => {
 	return m.generate(options).string;
 };
 
-(async (bind: number) => {
-	const fastify = (await import('fastify')).default();
+import fastifyConstructor from 'fastify';
+const fastify = fastifyConstructor();
+const startHealth = async (bind: number) => {
 	fastify.get('/health', (req, reply) => {
 		reply.send({ status: 'ok' });
 	});
@@ -95,4 +102,6 @@ const generateMarkov = (data: string[], seed: string): string => {
 
 		console.log(`Fastify listening on ${a}`);
 	});
-})(config.markov.health_bind);
+};
+
+export {};
