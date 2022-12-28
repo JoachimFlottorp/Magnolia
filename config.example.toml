@@ -1,0 +1,31 @@
+[redis]
+username = ""
+password = ""
+database = 0
+address = ""
+
+[mongo]
+username = ""
+password = ""
+address = ""
+srv = false
+db = ""
+
+[rmq]
+uri = "amqp://user:password@localhost:5672/"
+
+[markov]
+health_address = "http://127.0.0.1:3011"
+health_bind = 3011
+
+[http]
+port = 0
+public_url = "https://example.com"
+
+[twitch]
+
+[twitch.bot]
+username = "apuscience"
+password = "oauth:accesstoken"
+admins = ["twitchuid"]
+prefix = "!"

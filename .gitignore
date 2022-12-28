@@ -16,5 +16,6 @@
 
 web/public/swagger.json
 config.json
+config.toml
 .vs
 bin

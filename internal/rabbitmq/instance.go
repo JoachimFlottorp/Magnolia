@@ -55,9 +55,7 @@ type NewInstanceSettings struct {
 }
 
 type Instance interface {
-	// Publish a message to the specified exchange
 	Publish(context.Context, PublishSettings) error
-	// Create a queue
 	CreateQueue(context.Context, QueueSettings) (amqp091.Queue, error)
 	CreateExchange(context.Context, ExchangeSettings) error
 	BindQueue(context.Context, BindingSettings) error

@@ -2,6 +2,7 @@ package ctx
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/config"
@@ -84,4 +85,36 @@ func WithTimeout(ctx Context, timeout time.Duration) (Context, context.CancelFun
 		config:  cfg,
 		inst:    inst,
 	}, cancel
+}
+
+func CreateAndPopulateGlobalContext(conf *config.Config) (Context, context.CancelFunc, error) {
+	ctx := context.Background()
+
+	gCtx, cancel := WithCancel(New(ctx, conf))
+
+	{
+		var err error
+		gCtx.Inst().Redis, err = instance.CreateRedisInstance(gCtx, conf)
+		if err != nil {
+			return nil, cancel, fmt.Errorf("CreateRedisInstance %w", err)
+		}
+	}
+
+	{
+		var err error
+		gCtx.Inst().Mongo, err = instance.CreateMongoInstance(gCtx, conf)
+		if err != nil {
+			return nil, cancel, fmt.Errorf("CreateMongoInstance %w", err)
+		}
+	}
+
+	{
+		var err error
+		gCtx.Inst().RMQ, err = instance.CreateRabbitMQInstance(gCtx, conf)
+		if err != nil {
+			return nil, cancel, fmt.Errorf("CreateRabbitMQInstance %w", err)
+		}
+	}
+
+	return gCtx, cancel, nil
 }

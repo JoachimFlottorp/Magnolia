@@ -41,6 +41,10 @@ func (m *PrivmsgMessage) GetType() MessageType {
 	return PRIVMSG
 }
 
+func (m *PrivmsgMessage) UserID() string {
+	return m.Tags["user-id"]
+}
+
 type PingMessage struct {
 	Raw     string
 	Message string

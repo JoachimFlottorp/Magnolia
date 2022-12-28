@@ -1,43 +1,56 @@
 package config
 
 import (
+	"flag"
+	"os"
+
+	"github.com/pelletier/go-toml/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
+var (
+	cfg   = flag.String("config", "config.toml", "Path to the config file")
+	debug = flag.Bool("debug", false, "Enable debug logging")
+)
+
+func init() {
+	flag.Parse()
+}
+
 type Config struct {
 	Redis struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Database int    `json:"database"`
-		Address  string `json:"address"`
-	} `json:"redis"`
+		Username string `toml:"username"`
+		Password string `toml:"password"`
+		Database int    `toml:"database"`
+		Address  string `toml:"address"`
+	} `toml:"redis"`
 	Mongo struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Address  string `json:"address"`
-		SRV      bool   `json:"srv"`
-		DB       string `json:"db"`
+		Username string `toml:"username"`
+		Password string `toml:"password"`
+		Address  string `toml:"address"`
+		SRV      bool   `toml:"srv"`
+		DB       string `toml:"db"`
 	}
 	RabbitMQ struct {
-		URI string `json:"uri"`
-	} `json:"rmq"`
+		URI string `toml:"uri"`
+	} `toml:"rmq"`
 	Markov struct {
-		HealthAddress string `json:"health_address"`
-		HealthBind    int    `json:"health_bind"`
-	} `json:"markov"`
+		HealthAddress string `toml:"health_address"`
+		HealthBind    int    `toml:"health_bind"`
+	} `toml:"markov"`
 	Http struct {
-		Port      int    `json:"port"`
-		PublicURL string `json:"public_url"`
-	} `json:"http"`
+		Port      int    `toml:"port"`
+		PublicURL string `toml:"public_url"`
+	} `toml:"http"`
 	Twitch struct {
 		Bot struct {
-			Username string   `json:"username"`
-			Password string   `json:"password"`
-			Admins   []string `json:"admins"`
-			Prefix   string   `json:"prefix"`
-		} `json:"bot"`
-	} `json:"twitch"`
+			Username string   `toml:"username"`
+			Password string   `toml:"password"`
+			Admins   []string `toml:"admins"`
+			Prefix   string   `toml:"prefix"`
+		} `toml:"bot"`
+	} `toml:"twitch"`
 }
 
 func ReplaceZapGlobal(isDebug bool) error {
@@ -63,4 +76,18 @@ func ReplaceZapGlobal(isDebug bool) error {
 	}
 
 	return nil
+}
+func CreateConfig() (*Config, error) {
+	bytes, err := os.ReadFile(*cfg)
+	if err != nil {
+		return nil, err
+	}
+	var config Config
+
+	err = toml.Unmarshal(bytes, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, ReplaceZapGlobal(*debug)
 }

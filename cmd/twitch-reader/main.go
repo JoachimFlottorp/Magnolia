@@ -4,22 +4,17 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"os"
-	"os/signal"
 	"regexp"
 	"sync"
-	"syscall"
-	"time"
 
 	"github.com/JoachimFlottorp/magnolia/internal/config"
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
 	"github.com/JoachimFlottorp/magnolia/internal/rabbitmq"
-	"github.com/JoachimFlottorp/magnolia/internal/redis"
 	"github.com/JoachimFlottorp/magnolia/pkg/irc"
+	"github.com/JoachimFlottorp/magnolia/pkg/sigwrapper"
 	pb "github.com/JoachimFlottorp/magnolia/protobuf"
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/protobuf/proto"
@@ -28,8 +23,6 @@ import (
 )
 
 var (
-	cfg    = flag.String("config", "config.json", "Path to the config file")
-	debug  = flag.Bool("debug", false, "Enable debug logging")
 	maxMsg = flag.Int64("max-msg", 1000, "Maximum number of messages to store in redis")
 
 	botIgnoreList = regexp.MustCompile(`bo?t{1,2}(?:(?:ard)?o|\d|_)*$|^(?:fembajs|veryhag|scriptorex|apulxd|qdc26534|linestats|pepegaboat|sierrapine|charlestonbieber|icecreamdatabase|chatvote|localaniki|rewardmore|gorenmu|0weebs|befriendlier|electricbodybuilder|o?bot(?:bear1{3}0|2465|menti|e|nextdoor)|stream(?:elements|labs))$`)
@@ -37,75 +30,28 @@ var (
 
 func init() {
 	flag.Parse()
-
-	if err := config.ReplaceZapGlobal(*debug); err != nil {
-		panic(err)
-	}
-
-	if cfg == nil {
-		zap.S().Fatal("Config file is not set")
-	}
 }
 
 func main() {
-	cfgFile, err := os.OpenFile(*cfg, os.O_RDONLY, 0)
+	conf, err := config.CreateConfig()
 	if err != nil {
-		zap.S().Fatalw("Config file is not set", "error", err)
+		panic(err)
 	}
 
-	defer func() {
-		err := cfgFile.Close()
-		zap.S().Warnw("Failed to close config file", "error", err)
-	}()
-
-	conf := &config.Config{}
-	err = json.NewDecoder(cfgFile).Decode(conf)
+	gCtx, cancel, err := ctx.CreateAndPopulateGlobalContext(conf)
 	if err != nil {
-		zap.S().Fatalw("Failed to decode config file", "error", err)
+		zap.S().Fatalw("Failed to create global context", "error", err)
 	}
 
-	doneSig := make(chan os.Signal, 1)
-	signal.Notify(doneSig, syscall.SIGINT, syscall.SIGTERM)
+	done := sigwrapper.NewWrapper(gCtx, cancel, zap.S())
 
-	gCtx, cancel := ctx.WithCancel(ctx.New(context.Background(), conf))
+	done.Run(func(ctx context.Context) {
 
-	ircMan := irc.NewManager(gCtx)
+		ircMan := irc.NewManager(gCtx)
 
-	{
-		gCtx.Inst().Redis, err = redis.Create(gCtx, redis.Options{
-			Address:  conf.Redis.Address,
-			Username: conf.Redis.Username,
-			Password: conf.Redis.Password,
-			DB:       conf.Redis.Database,
-		})
+		wg := sync.WaitGroup{}
 
-		if err != nil {
-			zap.S().Fatalw("Failed to create redis instance", "error", err)
-		}
-	}
-
-	{
-		gCtx.Inst().Mongo, err = mongo.New(gCtx, conf)
-
-		if err != nil {
-			zap.S().Fatalw("Failed to create mongo instance", "error", err)
-		}
-	}
-
-	wg := sync.WaitGroup{}
-
-	done := make(chan any)
-
-	{
-		gCtx.Inst().RMQ, err = rabbitmq.New(gCtx, &rabbitmq.NewInstanceSettings{
-			Address: gCtx.Config().RabbitMQ.URI,
-		})
-
-		if err != nil {
-			zap.S().Fatalw("Failed to create rabbitmq instance", "error", err)
-		}
-
-		if _, err = gCtx.Inst().RMQ.CreateQueue(gCtx, rabbitmq.QueueSettings{
+		if _, err = gCtx.Inst().RMQ.CreateQueue(ctx, rabbitmq.QueueSettings{
 			Name: rabbitmq.QueueJoinRequest,
 		}); err != nil {
 			zap.S().Fatalw("Failed to create rabbitmq queue", "error", err)
@@ -116,7 +62,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 
-			msg, err := gCtx.Inst().RMQ.Consume(gCtx, rabbitmq.ConsumeSettings{
+			msg, err := gCtx.Inst().RMQ.Consume(ctx, rabbitmq.ConsumeSettings{
 				Queue: rabbitmq.QueueJoinRequest,
 			})
 			if err != nil {
@@ -177,106 +123,72 @@ func main() {
 				}
 			}
 		}()
-	}
 
-	go func() {
-		<-doneSig
-		cancel()
+		wg.Add(1)
 
 		go func() {
-			select {
-			case <-time.After(10 * time.Second):
-			case <-doneSig:
+			defer wg.Done()
+
+			err = ircMan.ConnectAllFromDatabase()
+			if err != nil {
+				zap.S().Fatalw("Failed to setup irc manager", "error", err)
 			}
-			zap.S().Fatal("Forced to shutdown, because the shutdown took too long")
-		}()
 
-		zap.S().Info("Shutting down")
+			for {
+				select {
+				case <-gCtx.Done():
+					return
+				case msg := <-ircMan.MessageQueue:
+					{
+						key := fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
+						data := msg.Message
+						user := msg.User
+						if botIgnoreList.MatchString(user) {
+							continue
+						}
 
-		wg.Wait()
-
-		zap.S().Info("Shutdown complete")
-		close(done)
-	}()
-
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-
-		err = ircMan.ConnectAllFromDatabase()
-		if err != nil {
-			zap.S().Fatalw("Failed to setup irc manager", "error", err)
-		}
-
-		for {
-			select {
-			case <-gCtx.Done():
-				return
-			case msg := <-ircMan.MessageQueue:
-				{
-					key := fmt.Sprintf("twitch:%s:chat-data", msg.Channel)
-					data := msg.Message
-					user := msg.User
-					if botIgnoreList.MatchString(user) {
-						continue
-					}
-
-					if len, err := gCtx.Inst().Redis.LLen(gCtx, key); err != nil {
-						zap.S().Errorw("Failed to get length of redis list", "error", err)
-						continue
-					} else {
-						if len >= *maxMsg {
-							if err := gCtx.Inst().Redis.LRPop(gCtx, key); err != nil {
-								zap.S().Errorw("Failed to pop redis list", "error", err)
-								continue
+						if len, err := gCtx.Inst().Redis.LLen(gCtx, key); err != nil {
+							zap.S().Errorw("Failed to get length of redis list", "error", err)
+							continue
+						} else {
+							if len >= *maxMsg {
+								if err := gCtx.Inst().Redis.LRPop(gCtx, key); err != nil {
+									zap.S().Errorw("Failed to pop redis list", "error", err)
+									continue
+								}
 							}
 						}
-					}
 
-					if err := gCtx.Inst().Redis.LPush(gCtx, key, data); err != nil {
-						zap.S().Errorw("Failed to push message to redis", "error", err)
-						continue
-					}
+						if err := gCtx.Inst().Redis.LPush(gCtx, key, data); err != nil {
+							zap.S().Errorw("Failed to push message to redis", "error", err)
+							continue
+						}
 
-					pbMsg := pb.IRCPrivmsg{
-						Message: data,
-						Channel: msg.Channel,
-						User: &pb.IRCUser{
-							Username: user,
-							UserId:   msg.Tags["user-id"],
-						},
-					}
+						pbMsg := pb.IRCPrivmsg{
+							Message: data,
+							Channel: msg.Channel,
+							User: &pb.IRCUser{
+								Username: user,
+								UserId:   msg.UserID(),
+							},
+						}
 
-					msgByt, err := proto.Marshal(&pbMsg)
+						msgByt, err := proto.Marshal(&pbMsg)
 
-					if err != nil {
-						zap.S().Errorw("Failed to marshal protobuf message", "error", err)
-						continue
-					}
+						if err != nil {
+							zap.S().Errorw("Failed to marshal protobuf message", "error", err)
+							continue
+						}
 
-					if err := gCtx.Inst().Redis.Publish(gCtx, "twitch:messages", msgByt); err != nil {
-						zap.S().Errorw("Failed to publish message to redis", "error", err)
-						continue
+						if err := gCtx.Inst().Redis.Publish(gCtx, "twitch:messages", msgByt); err != nil {
+							zap.S().Errorw("Failed to publish message to redis", "error", err)
+							continue
+						}
 					}
 				}
 			}
-		}
-	}()
-
-	// wg.Add(1)
-
-	// go func() {
-	// 	defer wg.Done()
-
-	// 	queryUpdateBotList(gCtx)
-	// }()
-
-	zap.S().Info("Ready!")
-
-	<-done
-
-	os.Exit(0)
+		}()
+	})
 }
 
 func onJoinRequest(gCtx ctx.Context, irc *irc.IrcManager, req *pb.SubChannelReq) {
