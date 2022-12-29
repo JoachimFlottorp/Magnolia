@@ -8,12 +8,12 @@ COPY [ "markov-generator/package.json", "markov-generator/package-lock.json*", "
 RUN npm ci
 
 COPY ./markov-generator .
-COPY --from=deps /src/protobuf/*.ts /src/markov-generator/src/protobuf/
+COPY --from=deps /src/markov-generator/src/protobuf /src/markov-generator/src/protobuf
 
 ENV NODE_ENV=production
 
-FROM node:18
+FROM denoland/deno:1.29.1
 WORKDIR /app
 COPY --from=builder /src/markov-generator /app
 
-ENTRYPOINT [ "node", "--no-warnings", "--loader", "ts-node/esm", "src/index.ts", "/app/config.toml" ]
+ENTRYPOINT [ "deno", "run", "--allow-read", "--allow-net", "src/index.ts", "/app/config.toml" ]

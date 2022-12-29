@@ -16,7 +16,7 @@ docs:
 	swagger generate spec -m -o ./web/public/swagger.json
 
 proto:
-	cd protobuf; npm run generate
+	make -C protobuf generate
 
 docker:
 	docker build -f docker/Dockerfile.shared -t jf/magnolia.deps .

@@ -95,9 +95,7 @@ func (s *Server) setupRoutes(r router.Route, parent fiber.Router, parentName str
 	for _, middleware := range routeConfig.Middleware {
 		handlers = append(handlers, middleware.Handler())
 	}
-	handlers = append(handlers, r.Handler())
-
-	handlers = append(handlers, s.afterHandler())
+	handlers = append(handlers, s.wrapperHandler(r.Handler()))
 
 	for _, method := range routeConfig.Method {
 		switch method {
@@ -135,17 +133,13 @@ func (s *Server) beforeHandler() fiber.Handler {
 	}
 }
 
-func (s *Server) afterHandler() fiber.Handler {
+func (s *Server) wrapperHandler(fn func(*fiber.Ctx) (int, interface{}, error)) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+
+		statusCode, body, err := fn(c)
+
 		c.Set("Content-Type", "application/json")
 		t := time.Now()
-
-		if c.Locals(locals.LocalStatus) == nil {
-			c.Locals(locals.LocalStatus, http.StatusOK)
-		}
-
-		statusCode := c.Locals(locals.LocalStatus).(int)
-		body := c.Locals(locals.LocalResponse)
 
 		apiRes := response.ApiResponse{
 			RequestID: c.Locals(locals.LocalRequestID).(uuid.UUID),
@@ -155,7 +149,6 @@ func (s *Server) afterHandler() fiber.Handler {
 		if statusCode != http.StatusOK {
 			apiRes.Success = false
 
-			err := c.Locals(locals.LocalError)
 			if err != nil {
 				apiRes.Error = fmt.Sprintf("%v", err)
 			} else {
@@ -169,6 +162,8 @@ func (s *Server) afterHandler() fiber.Handler {
 
 				apiRes.Success = false
 				apiRes.Error = http.StatusText(http.StatusInternalServerError)
+
+				return c.Status(http.StatusInternalServerError).JSON(apiRes)
 			}
 
 			apiRes.Data = data
@@ -179,7 +174,7 @@ func (s *Server) afterHandler() fiber.Handler {
 			Timestamp: t,
 			Method:    c.Method(),
 			URL:       c.OriginalURL(),
-			Status:    fmt.Sprintf("%v", c.Locals(locals.LocalStatus)),
+			Status:    fmt.Sprintf("%d", statusCode),
 			IP:        c.Get("X-Forwarded-For", "?"),
 			UserAgent: c.Get("User-Agent", "?"),
 			Body:      string(apiRes.Data),
