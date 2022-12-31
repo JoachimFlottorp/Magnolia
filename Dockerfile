@@ -55,6 +55,7 @@ COPY --from=swagger /src/web /app/web
 RUN cd cmd/server && go build -ldflags '-extldflags "-static"' -o ./out ./main.go
 
 FROM alpine:3.16 as server
+WORKDIR /app
 COPY --from=server_deps /app/cmd/server/out /app/server
 COPY --from=server_deps /app/web /app/web
 ENTRYPOINT ["/app/server", "-config", "/app/config.toml"]
