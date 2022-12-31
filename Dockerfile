@@ -44,13 +44,20 @@ COPY cmd /app/cmd
 COPY pkg /app/pkg
 COPY external /app/external
 
+FROM quay.io/goswagger/swagger:latest as swagger
+WORKDIR /src
+COPY . .
+RUN swagger generate spec -m -o ./web/public/swagger.json
+
 FROM golang_deps_base as server_deps
 COPY cmd/server/main.go /app/cmd/server/main.go
+COPY --from=swagger /src/web /app/web
 RUN cd cmd/server && go build -ldflags '-extldflags "-static"' -o ./out ./main.go
 
 FROM alpine:3.16 as server
+WORKDIR /app
 COPY --from=server_deps /app/cmd/server/out /app/server
-COPY web /app/web
+COPY --from=server_deps /app/web /app/web
 ENTRYPOINT ["/app/server", "-config", "/app/config.toml"]
 
 FROM golang_deps_base as twitch_reader_deps
