@@ -46,7 +46,7 @@ COPY external /app/external
 
 FROM golang_deps_base as server_deps
 COPY cmd/server/main.go /app/cmd/server/main.go
-RUN cd cmd/server && go buld -ldflags '-extldflags "-static"' -o ./out ./main.go
+RUN cd cmd/server && go build -ldflags '-extldflags "-static"' -o ./out ./main.go
 
 FROM alpine:3.16 as server
 COPY --from=server_deps /app/cmd/server/out /app/server
@@ -54,7 +54,7 @@ ENTRYPOINT ["/app/server"]
 
 FROM golang_deps_base as twitch_reader_deps
 COPY cmd/twitch-reader/main.go /app/cmd/twitch-reader/main.go
-RUN cd cmd/twitch-reader && go buld -ldflags '-extldflags "-static"' -o ./out ./main.go
+RUN cd cmd/twitch-reader && go build -ldflags '-extldflags "-static"' -o ./out ./main.go
 
 FROM alpine:3.16 as twitch_reader
 COPY --from=twitch_reader_deps /app/cmd/twitch-reader/out /app/twitch-reader
@@ -62,7 +62,7 @@ ENTRYPOINT ["/app/twitch-reader"]
 
 FROM golang_deps_base as chat_bot_deps
 COPY cmd/chat-bot/main.go /app/cmd/chat-bot/main.go
-RUN cd cmd/chat-bot && go buld -ldflags '-extldflags "-static"' -o ./out ./main.go
+RUN cd cmd/chat-bot && go build -ldflags '-extldflags "-static"' -o ./out ./main.go
 
 FROM alpine:3.16 as chat_bot
 COPY --from=chat_bot_deps /app/cmd/chat-bot/out /app/chat-bot
