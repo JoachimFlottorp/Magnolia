@@ -6,6 +6,9 @@ on:
       - main
   pull_request:
 
+env:
+  PBKIT_VERSION: 0.0.57
+
 jobs:
   test:
 
@@ -25,6 +28,16 @@ jobs:
       - uses: denoland/setup-deno@v1
         with:
           deno-version: v1.29.1
+
+      - uses: wei/curl@master
+        with:
+          args: https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
+      
+      - uses: montudor/action-zip@v1
+        with:
+          args: -xvf pbkit.tar
+
+      - run: sudo mv pbkit /usr/local/bin
 
       - name: Get Dependencies
         run: |
