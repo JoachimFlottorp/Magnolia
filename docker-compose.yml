@@ -1,11 +1,13 @@
 version: '3.6'
 
 services:
+
   server:
     image: jf/magnolia.server
     build:
       context: .
-      dockerfile: ./docker/server/Dockerfile
+      dockerfile: ./Dockerfile
+      target: server
     container_name: "magnolia-server"
     ports:
       - "3004:3004"
@@ -18,11 +20,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
+    
   twitch-reader:
     image: jf/magnolia.twitch-reader
     build:
       context: .
-      dockerfile: ./docker/twitch-reader/Dockerfile
+      dockerfile: ./Dockerfile
+      target: twitch_reader
     container_name: "magnolia-twitch-reader"
     networks:
       - "magnolia"
@@ -33,11 +37,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: -debug
+    
   chat-bot:
     image: jf/magnolia.chat-bot
     build:
       context: .
-      dockerfile: ./docker/chat-bot/Dockerfile
+      dockerfile: ./Dockerfile
+      target: chat_bot
     container_name: "magnolia-chat-bot"
     networks:
       - "magnolia"
@@ -53,7 +59,8 @@ services:
     image: jf/magnolia.markov-generator
     build:
       context: .
-      dockerfile: ./docker/markov-generator/Dockerfile
+      dockerfile: ./Dockerfile
+      target: markov_generator
     container_name: "magnolia-markov-generator"
     ports:
       - "3011:3011"

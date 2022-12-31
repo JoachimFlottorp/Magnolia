@@ -5,7 +5,6 @@ import (
 
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/JoachimFlottorp/magnolia/internal/mongo"
-	"github.com/JoachimFlottorp/magnolia/internal/web/locals"
 	"github.com/JoachimFlottorp/magnolia/internal/web/router"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
@@ -43,14 +42,13 @@ func (a *ListRoute) Configure() router.RouteConfig {
 //
 //	Responses:
 //		200: MarkovListResponse
-func (a *ListRoute) Handler() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+func (a *ListRoute) Handler() router.RouterHandler {
+	return func(c *fiber.Ctx) (int, interface{}, error) {
 		cur, err := a.Ctx.Inst().Mongo.Collection(mongo.CollectionTwitch).Find(c.Context(), bson.D{})
 		if err != nil {
 			zap.S().Errorw("failed to find channels", "error", err)
 
-			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-			return c.Next()
+			return http.StatusInternalServerError, nil, router.ErrInternalServerError
 		}
 
 		var resp MarkovListResponse
@@ -59,8 +57,7 @@ func (a *ListRoute) Handler() fiber.Handler {
 			if err := cur.Decode(&channel); err != nil {
 				zap.S().Errorw("failed to decode channel", "error", err)
 
-				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-				return c.Next()
+				return http.StatusInternalServerError, nil, router.ErrInternalServerError
 			}
 
 			resp.Channels = append(resp.Channels, basicChannel{
@@ -69,9 +66,6 @@ func (a *ListRoute) Handler() fiber.Handler {
 			})
 		}
 
-		c.Locals(locals.LocalStatus, http.StatusOK)
-		c.Locals(locals.LocalResponse, resp)
-
-		return c.Next()
+		return http.StatusOK, resp, nil
 	}
 }

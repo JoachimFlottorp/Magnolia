@@ -41,6 +41,20 @@ The chat-bot is a pretty simple interface for manually joining or parting a chan
 
 It will only listen to messages which start with the _Prefix_ and users that matches the uid given in the configuration file. You can find your accounts user-id [here](https://www.twitchdatabase.com/channels/melon095)
 
+## Development
+
+Install the required tools
+
+[Go](https://golang.org/)
+[Deno](https://deno.land/).
+
+[Mongo](https://www.mongodb.com/)
+[Redis](https://redis.io/)
+[RabbitMQ](https://www.rabbitmq.com/)
+
+[Protoc](https://github.com/protocolbuffers/protobuf)
+[PBKit](https://pbkit.dev/docs/getting-started/installation)
+
 ### Privacy And Policy
 
 Magnolia collects public chat messages for generating markov chains.

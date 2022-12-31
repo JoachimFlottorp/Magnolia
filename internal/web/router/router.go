@@ -1,11 +1,18 @@
 package router
 
 import (
+	"fmt"
+
 	"github.com/JoachimFlottorp/magnolia/internal/ctx"
 	"github.com/gofiber/fiber/v2"
 )
 
 type RouteInitializerFunc func(ctx.Context) Route
+type RouterHandler func(c *fiber.Ctx) (int, interface{}, error)
+
+var (
+	ErrInternalServerError = fmt.Errorf("internal Server Error")
+)
 
 // RouteConfig: Specifies the configuration of a route.
 type RouteConfig struct {
@@ -17,7 +24,7 @@ type RouteConfig struct {
 
 type Route interface {
 	Configure() RouteConfig
-	Handler() fiber.Handler
+	Handler() RouterHandler
 }
 
 type Middleware interface {

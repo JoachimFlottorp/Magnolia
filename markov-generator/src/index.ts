@@ -1,11 +1,6 @@
-import type { MarkovGenerateOptions } from 'markov-strings';
+import { Amqp, Server, Markov, MarkovGenerateOptions, Toml } from './deps.ts';
 
-import { connect } from 'amqplib';
-
-import { MarkovResponse, MarkovRequest } from './protobuf/markov.js';
-import Markov from 'markov-strings';
-import * as toml from '@gulujs/toml';
-import fs from 'node:fs';
+import { MarkovRequest, MarkovResponse } from '../../protobuf/out/messages/proto/index.ts';
 
 type Config = {
 	markov: {
@@ -16,37 +11,33 @@ type Config = {
 	};
 };
 
-const argv = process.argv.slice(2);
 const args = {
-	config: argv[0],
+	config: Deno.args[0],
 };
 
 if (!args.config) throw new Error('No config file specified');
 
 const queue = 'markov-generator';
-const configContent = fs.readFileSync(args.config, 'utf-8');
+const configContent = Deno.readTextFileSync(args.config);
 
 (async () => {
-	const config = toml.parse<Config>(configContent);
+	const config = Toml.parse<Config>(configContent);
 
-	const rmqconnection = await connect(config.rmq.uri);
-	const rmqchannel = await rmqconnection.createChannel();
+	const rmqConnection = await Amqp.connect(config.rmq.uri);
+	const rmqChannel = await rmqConnection.openChannel();
 
-	await rmqchannel.assertQueue(queue, { durable: true });
+	await rmqChannel.declareQueue({ queue, durable: true });
 
-	rmqchannel.consume(queue, async (msg) => {
-		if (!msg) return;
+	rmqChannel.consume({ queue }, async ({ deliveryTag }, { correlationId }, rawData) => {
+		const data = await fromProto(rawData);
+		console.log({ correlationId });
 
-		const data = fromProto(msg.content);
-		const id = msg.properties.correlationId;
-		console.log({ id });
-
-		rmqchannel.ack(msg);
+		rmqChannel.ack({ deliveryTag, multiple: false });
 
 		let markov = '';
 		let error: string | undefined = undefined;
 		try {
-			markov = generateMarkov(data.messages, data.seed ?? '');
+			markov = await generateMarkov(data.messages, data.seed ?? '');
 		} catch (e) {
 			console.error('Error generating markov', e);
 
@@ -55,9 +46,11 @@ const configContent = fs.readFileSync(args.config, 'utf-8');
 
 		console.log({ markov, error });
 
-		rmqchannel.sendToQueue(queue, toProto({ result: markov, error }), {
-			correlationId: id,
-		});
+		rmqChannel.publish(
+			{ routingKey: queue },
+			{ correlationId, contentType: 'application/protobuf' },
+			await toProto({ result: markov, error }),
+		);
 	});
 
 	console.log('Listening for markov requests at', { queue });
@@ -65,13 +58,25 @@ const configContent = fs.readFileSync(args.config, 'utf-8');
 	startHealth(config.markov.health_bind);
 })();
 
-const fromProto = (data: Buffer): MarkovRequest => MarkovRequest.decode(data);
-const toProto = (data: MarkovResponse): Buffer => Buffer.from(MarkovResponse.encode(data).finish());
+const fromProto = async (data: Uint8Array): Promise<MarkovRequest> => {
+	const deserialize = (await import('../../protobuf/out/messages/proto/MarkovRequest.ts'))
+		.decodeBinary;
 
-const generateMarkov = (data: string[], seed: string): string => {
+	return deserialize(data);
+};
+
+const toProto = async (data: MarkovResponse): Promise<Uint8Array> => {
+	const serialize = (await import('../../protobuf/out/messages/proto/MarkovResponse.ts'))
+		.encodeBinary;
+
+	return serialize(data);
+};
+
+const generateMarkov = (data: string[], seed: string): Promise<string> => {
+	// Type 'string' is not assignable to type 'Promise<string>'.deno-ts(2322)
 	if (!data.length) return '';
 
-	const m = new Markov({ stateSize: 1 });
+	const m = new Markov.default({ stateSize: 1 });
 
 	m.addData(data);
 
@@ -84,24 +89,20 @@ const generateMarkov = (data: string[], seed: string): string => {
 			r.string.split(' ').length >= 10,
 	};
 
+	// Type 'string' is not assignable to type 'Promise<string>'.deno-ts(2322)
 	return m.generate(options).string;
 };
 
-import fastifyConstructor from 'fastify';
-const fastify = fastifyConstructor();
-const startHealth = async (bind: number) => {
-	fastify.get('/health', (req, reply) => {
-		reply.send({ status: 'ok' });
-	});
+async function startHealth(port: number) {
+	const handler: Server.Handler = () => {
+		const body = JSON.stringify({ status: 'ok' });
 
-	fastify.listen({ port: bind, host: '0.0.0.0' }, (e, a) => {
-		if (e) {
-			console.error(e);
-			process.exit(1);
-		}
+		return new Response(body, { status: 200 });
+	};
 
-		console.log(`Fastify listening on ${a}`);
-	});
-};
+	const server = new Server.Server({ port, handler });
+
+	await server.listenAndServe();
+}
 
 export {};

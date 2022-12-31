@@ -1,4 +1,4 @@
 node_modules
 coverage
 dist
-src/protobuf/*.ts
+deno.lock

@@ -24,14 +24,14 @@ import (
 )
 
 var (
-	ErrNoData           = "no data"
-	ErrTooLong          = "took to long to generate markov chain"
-	ErrUnableToGenerate = "unable to generate markov chain"
-	ErrMarkovNotAlive   = "markov generator is not alive"
+	ErrNoData           = fmt.Errorf("no data")
+	ErrTooLong          = fmt.Errorf("took to long to generate markov chain")
+	ErrUnableToGenerate = fmt.Errorf("unable to generate markov chain")
+	ErrMarkovNotAlive   = fmt.Errorf("markov generator is not alive")
 )
 
-func ErrNotEnoughData(len int) string {
-	return fmt.Sprintf("not enough data (%d/100)", len)
+func ErrNotEnoughData(len int) error {
+	return fmt.Errorf("not enough data (%d/100)", len)
 }
 
 // swagger:model MarkovResponse
@@ -110,8 +110,8 @@ func (a *MarkovRoute) Configure() router.RouteConfig {
 //
 //	Responses:
 //		200: MarkovResponse
-func (a *MarkovRoute) Handler() fiber.Handler {
-	return func(c *fiber.Ctx) error {
+func (a *MarkovRoute) Handler() router.RouterHandler {
+	return func(c *fiber.Ctx) (int, interface{}, error) {
 		channel := c.Query("channel", "")
 		seed := c.Query("seed", "")
 
@@ -119,10 +119,7 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 		u := c.Locals(locals.LocalRequestID).(uuid.UUID)
 
 		if channel == "" {
-			c.Locals(locals.LocalStatus, http.StatusBadRequest)
-			c.Locals(locals.LocalError, "Missing channel parameter")
-
-			return c.Next()
+			return http.StatusBadRequest, nil, fmt.Errorf("missing channel parameter")
 		}
 
 		storedData, err := a.Ctx.Inst().Redis.GetAllList(c.Context(), key)
@@ -130,7 +127,7 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 			if err != redis.Nil {
 				zap.S().Errorf("Failed to get channel data from redis: %s", err)
 
-				c.Locals(locals.LocalError, http.StatusInternalServerError)
+				return http.StatusInternalServerError, nil, router.ErrInternalServerError
 			}
 
 			req := pb.SubChannelReq{
@@ -141,7 +138,7 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 			if err != nil {
 				zap.S().Errorw("Failed to marshal protobuf message", "error", err)
 
-				c.Locals(locals.LocalError, http.StatusInternalServerError)
+				return http.StatusInternalServerError, nil, router.ErrInternalServerError
 			}
 
 			err = a.Ctx.Inst().RMQ.Publish(a.Ctx, rabbitmq.PublishSettings{
@@ -155,42 +152,29 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 			if err != nil {
 				zap.S().Errorw("Failed to send subcribe to RabbitMQ", "error", err)
 
-				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-				c.Locals(locals.LocalError, "Chat logger is not available")
-
-				return c.Next()
+				return http.StatusInternalServerError, nil, fmt.Errorf("chat logger is not available")
 			}
 
 			if err := a.Ctx.Inst().Redis.Publish(c.Context(), "twitch:chat-logger:join", reqByte); err != nil {
 				zap.S().Errorw("Failed to publish to redis", "error", err)
 
-				c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-				c.Locals(locals.LocalError, "Chat logger is not available")
-
-				return c.Next()
+				return http.StatusInternalServerError, nil, fmt.Errorf("chat logger is not available")
 			}
 
-			c.Locals(locals.LocalStatus, http.StatusNotFound)
-			c.Locals(locals.LocalError, ErrNoData)
-
-			return c.Next()
+			return http.StatusNotFound, nil, ErrNoData
 		} else if l := len(storedData); l < 100 {
-			c.Locals(locals.LocalStatus, http.StatusNotFound)
-			c.Locals(locals.LocalError, ErrNotEnoughData(l))
 
-			return c.Next()
+			return http.StatusInternalServerError, nil, ErrNotEnoughData(l)
 		} else if !a.isAlive {
-			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-			c.Locals(locals.LocalError, ErrMarkovNotAlive)
-
-			return c.Next()
+			return http.StatusInternalServerError, nil, ErrMarkovNotAlive
 		}
 
 		markovChan, err := a.genMarkov(c.Context(), u, storedData, seed)
 
 		if err != nil {
-			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-			return c.Next()
+			zap.S().Errorw("Failed to generate markov chain", "error", err)
+
+			return http.StatusInternalServerError, nil, router.ErrInternalServerError
 		}
 
 		result, ok := <-markovChan
@@ -198,28 +182,19 @@ func (a *MarkovRoute) Handler() fiber.Handler {
 		if !ok {
 			zap.S().Errorw("Took to long to generate markov chain", "channel", channel)
 
-			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-			c.Locals(locals.LocalError, ErrTooLong)
-
-			return c.Next()
+			return http.StatusInternalServerError, nil, ErrTooLong
 		}
 
 		if result.Error != nil {
 
 			if strings.HasPrefix(*result.Error, "Failed to build a sentence after") {
-				c.Locals(locals.LocalStatus, http.StatusNotFound)
-				c.Locals(locals.LocalError, ErrUnableToGenerate)
-
-				return c.Next()
+				return http.StatusNotFound, nil, ErrUnableToGenerate
+			} else {
+				return http.StatusInternalServerError, nil, router.ErrInternalServerError
 			}
-
-			c.Locals(locals.LocalStatus, http.StatusInternalServerError)
-			return c.Next()
 		}
 
-		c.Locals(locals.LocalResponse, MarkovResponse{Markov: result.Result})
-
-		return c.Next()
+		return http.StatusOK, MarkovResponse{Markov: result.Result}, nil
 	}
 }
 

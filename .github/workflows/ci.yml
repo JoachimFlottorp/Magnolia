@@ -6,12 +6,17 @@ on:
       - main
   pull_request:
 
+env:
+  PBKIT_VERSION: 0.0.57
+
 jobs:
   test:
 
     runs-on: ubuntu-latest
     
     steps:
+      - run: sudo apt install -y make git
+    
       - uses: actions/checkout@v2
 
       - name: Install and setup Golang
@@ -22,16 +27,19 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
-      - uses: actions/setup-node@v3
+      - name: Install Deno
+        uses: denoland/setup-deno@v1
         with:
-          node-version: 18
+          deno-version: v1.29.1
+
+      - name: Setup pbkit
+        run: |
+          git clone -b "v${{ env.PBKIT_VERSION }}" https://github.com/pbkit/pbkit.git pbkit
+          cd pbkit
+          deno install -n pb -A --unstable cli/pb/entrypoint.ts
 
       - name: Get Dependencies
         run: |
-          sudo apt install -y make
-          cd protobuf
-          npm ci
-          cd ..
           make proto
           go get -v -t -d ./...
 
