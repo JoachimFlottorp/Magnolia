@@ -40,7 +40,7 @@ jobs:
         id: extract
         with:
           command: x
-          file: pbkit.tar
+          files: pbkit.tar
 
       - run: sudo mv pbkit /usr/local/bin
 
