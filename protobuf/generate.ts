@@ -16,11 +16,14 @@ const DEPS: string[] = [
 ];
 
 const moveDir = async (src: string, dst: string) => {
+  const Remove = (path: string) => Deno.remove(path, { recursive: true });
+
   const exists = await Deno.stat(dst)
     .then(() => true)
     .catch(() => false);
 
-  if (exists) await Deno.remove(dst, { recursive: true });
+  if (exists) await Remove(dst);
+  //   if (exists) await Deno.remove(dst, { recursive: true });
 
   await Deno.mkdir(dst, { recursive: true });
 
@@ -33,7 +36,7 @@ const moveDir = async (src: string, dst: string) => {
     await Deno.rename(filePath, newFilePath);
   }
 
-  await Deno.remove(src);
+  await Remove(src);
 };
 
 (async () => {
