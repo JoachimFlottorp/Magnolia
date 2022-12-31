@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - run: apt install -y make git
+    
       - uses: actions/checkout@v2
 
       - name: Install and setup Golang
@@ -30,20 +32,14 @@ jobs:
         with:
           deno-version: v1.29.1
 
-      - name: Download pbkit
-        uses: wei/curl@master
-        with:
-          args: -LsS https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
-      
-      - name: Install pbkit
+      - name: Setup pbkit
         run: |
-          tar -xvf pbkit.tar
-          chmod +x pb
-          mv pb /usr/local/bin
+          git clone -b "v${{ env.PBKIT_VERSION }}" https://github.com/pbkit/pbkit.git pbkit
+          cd pbkit
+          deno -n pb -A --unstable cli/pb/entrypoint.ts
 
       - name: Get Dependencies
         run: |
-          sudo apt install -y make
           make proto
           go get -v -t -d ./...
 
