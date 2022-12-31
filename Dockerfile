@@ -29,7 +29,7 @@ WORKDIR /src/protobuf
 RUN /bin/deno run --allow-run --allow-read --allow-env --allow-write generate.ts
 
 ARG DENO_VERSION
-FROM denoland/deno:bin-${DENO_VERSION} as deno_deps_base
+FROM denoland/deno:alpine-${DENO_VERSION} as deno_deps_base
 WORKDIR /app
 COPY markov-generator/src/deps.ts /app/deps.ts
 RUN deno cache deps.ts
