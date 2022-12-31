@@ -36,7 +36,7 @@ jobs:
         run: |
           git clone -b "v${{ env.PBKIT_VERSION }}" https://github.com/pbkit/pbkit.git pbkit
           cd pbkit
-          deno -n pb -A --unstable cli/pb/entrypoint.ts
+          deno install -n pb -A --unstable cli/pb/entrypoint.ts
 
       - name: Get Dependencies
         run: |
