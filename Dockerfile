@@ -56,6 +56,7 @@ RUN cd cmd/server && go build -ldflags '-extldflags "-static"' -o ./out ./main.g
 
 FROM alpine:3.16 as server
 COPY --from=server_deps /app/cmd/server/out /app/server
+COPY --from=server_deps /app/web /app/web
 ENTRYPOINT ["/app/server", "-config", "/app/config.toml"]
 
 FROM golang_deps_base as twitch_reader_deps
