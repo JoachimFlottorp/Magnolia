@@ -18,8 +18,6 @@ ARG PBKIT_VERSION
 RUN git clone -b "v$PBKIT_VERSION" https://github.com/pbkit/pbkit.git pbkit \
     && cd pbkit \
     && /bin/deno install -n pb -A --unstable --root / cli/pb/entrypoint.ts 
-    # && cd .. \
-    # && rm -rf pbkit
 
 ENV GOMODULE111=on
 WORKDIR /src
@@ -30,9 +28,9 @@ ENV PB_BINARY=/bin/pb
 WORKDIR /src/protobuf
 RUN /bin/deno run --allow-run --allow-read --allow-env --allow-write generate.ts
 
-FROM node:18-alpine as node_deps_base
+ARG DENO_VERSION
+FROM denoland/deno:bin-${DENO_VERSION} as deno_deps_base
 WORKDIR /app
-RUN apk add --no-cache make
 COPY markov-generator/src/deps.ts /app/deps.ts
 RUN deno cache deps.ts
 
@@ -70,7 +68,7 @@ FROM alpine:3.16 as chat_bot
 COPY --from=chat_bot_deps /app/cmd/chat-bot/out /app/chat-bot
 ENTRYPOINT ["/app/chat-bot"]
 
-FROM node_deps_base as markov_generator
+FROM deno_deps_base as markov_generator
 COPY markov-generator/src /app/src
 COPY --from=proto /src/markov-generator/src/protobuf /app/src/protobuf
 ENTRYPOINT [ "deno", "run", "--allow-read", "--allow-net", "src/index.ts", "/app/config.toml" ]
