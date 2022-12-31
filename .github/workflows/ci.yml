@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - run: apt install -y make git
+      - run: sudo apt install -y make git
     
       - uses: actions/checkout@v2
 
