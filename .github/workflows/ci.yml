@@ -25,17 +25,20 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
-      - uses: denoland/setup-deno@v1
+      - name: Install Deno
+        uses: denoland/setup-deno@v1
         with:
           deno-version: v1.29.1
 
-      - uses: wei/curl@master
+      - name: Install pbkit
+        uses: wei/curl@master
         with:
           args: https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
       
-      - uses: montudor/action-zip@v1
+      - name: Unzip pbkit
+        uses: montudor/action-zip@v1
         with:
-          args: -xvf pbkit.tar
+          args: unzip -xvf pbkit.tar
 
       - run: sudo mv pbkit /usr/local/bin
 
