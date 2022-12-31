@@ -3,3 +3,4 @@ node_modules
 *.ts
 !generate.ts
 deno.lock
+out

@@ -22,16 +22,13 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
 
-      - uses: actions/setup-node@v3
+      - uses: denoland/setup-deno@v1
         with:
-          node-version: 18
+          deno-version: v1.29.1
 
       - name: Get Dependencies
         run: |
           sudo apt install -y make
-          cd protobuf
-          npm ci
-          cd ..
           make proto
           go get -v -t -d ./...
 
