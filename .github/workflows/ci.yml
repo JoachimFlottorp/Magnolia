@@ -33,7 +33,7 @@ jobs:
       - name: Install pbkit
         uses: wei/curl@master
         with:
-          args: https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
+          args: -LsS https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
       
       - name: Unzip pbkit
         uses: a7ul/tar-action@v1.1.0

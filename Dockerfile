@@ -12,7 +12,7 @@ COPY --from=deno /lib/* /lib/
 COPY --from=deno /lib64/* /lib64/
 COPY --from=deno /usr/lib/* /usr/lib/
 
-RUN apk add --no-cache make protobuf bash curl git
+RUN apk add --no-cache make protobuf bash git
 ARG PBKIT_VERSION
 
 RUN git clone -b "v$PBKIT_VERSION" https://github.com/pbkit/pbkit.git pbkit \
