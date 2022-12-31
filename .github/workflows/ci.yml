@@ -36,9 +36,11 @@ jobs:
           args: https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
       
       - name: Unzip pbkit
-        uses: montudor/action-zip@v1
+        uses: a7ul/tar-action@v1.1.0
+        id: extract
         with:
-          args: unzip -xvf pbkit.tar
+          command: x
+          file: pbkit.tar
 
       - run: sudo mv pbkit /usr/local/bin
 
