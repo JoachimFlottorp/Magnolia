@@ -38,8 +38,8 @@ jobs:
       - name: Install pbkit
         run: |
           tar -xvf pbkit.tar
-          chmod +x pbkit
-          mv pbkit /usr/local/bin
+          chmod +x pb
+          mv pb /usr/local/bin
 
       - name: Get Dependencies
         run: |
