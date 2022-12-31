@@ -1,6 +1,6 @@
 import { Amqp, Server, Markov, MarkovGenerateOptions, Toml } from './deps.ts';
 
-import { MarkovRequest, MarkovResponse } from './protobuf/messages/proto/index.ts';
+import { MarkovRequest, MarkovResponse } from '../../protobuf/out/messages/proto/index.ts';
 
 type Config = {
 	markov: {
@@ -59,13 +59,15 @@ const configContent = Deno.readTextFileSync(args.config);
 })();
 
 const fromProto = async (data: Uint8Array): Promise<MarkovRequest> => {
-	const deserialize = (await import('./protobuf/messages/proto/MarkovRequest.ts')).decodeBinary;
+	const deserialize = (await import('../../protobuf/out/messages/proto/MarkovRequest.ts'))
+		.decodeBinary;
 
 	return deserialize(data);
 };
 
 const toProto = async (data: MarkovResponse): Promise<Uint8Array> => {
-	const serialize = (await import('./protobuf/messages/proto/MarkovResponse.ts')).encodeBinary;
+	const serialize = (await import('../../protobuf/out/messages/proto/MarkovResponse.ts'))
+		.encodeBinary;
 
 	return serialize(data);
 };

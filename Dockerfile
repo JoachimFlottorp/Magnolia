@@ -70,5 +70,5 @@ ENTRYPOINT ["/app/chat-bot", "-config", "/app/config.toml"]
 
 FROM deno_deps_base as markov_generator
 COPY markov-generator/src /app/src
-COPY --from=proto /src/markov-generator/src/protobuf /app/src/protobuf
+COPY --from=proto /src/protobuf/out /protobuf/out
 ENTRYPOINT [ "deno", "run", "--allow-read", "--allow-net", "/app/src/index.ts", "/app/config.toml" ]
