@@ -1,9 +1,4 @@
-import * as toml from 'npm:@gulujs/toml';
-import type { MarkovGenerateOptions } from 'npm:markov-strings';
-import Markov from 'npm:markov-strings';
-
-import * as amqp from 'https://deno.land/x/amqp@v0.21.0/mod.ts';
-import { Server, Handler } from 'https://deno.land/std@0.170.0/http/server.ts';
+import { Amqp, Server, Markov, MarkovGenerateOptions, Toml } from './deps.ts';
 
 import { MarkovRequest, MarkovResponse } from './protobuf/messages/proto/index.ts';
 
@@ -26,9 +21,9 @@ const queue = 'markov-generator';
 const configContent = Deno.readTextFileSync(args.config);
 
 (async () => {
-	const config = toml.parse<Config>(configContent);
+	const config = Toml.parse<Config>(configContent);
 
-	const rmqConnection = await amqp.connect(config.rmq.uri);
+	const rmqConnection = await Amqp.connect(config.rmq.uri);
 	const rmqChannel = await rmqConnection.openChannel();
 
 	await rmqChannel.declareQueue({ queue, durable: true });
@@ -97,13 +92,13 @@ const generateMarkov = (data: string[], seed: string): Promise<string> => {
 };
 
 async function startHealth(port: number) {
-	const handler: Handler = () => {
+	const handler: Server.Handler = () => {
 		const body = JSON.stringify({ status: 'ok' });
 
 		return new Response(body, { status: 200 });
 	};
 
-	const server = new Server({ port, handler });
+	const server = new Server.Server({ port, handler });
 
 	await server.listenAndServe();
 }

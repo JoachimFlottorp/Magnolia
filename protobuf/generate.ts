@@ -1,7 +1,7 @@
 import { sh } from "https://deno.land/x/drake@v1.6.0/mod.ts";
 
 const GOPROCESS = "protoc";
-const TSPROCESS = "pb gen ts";
+const TSPROCESS = `${Deno.env.get("PB_BINARY") ?? "pb"} gen ts`;
 
 const ARGUMENTS: string[] = [
   "--go_out=.",
@@ -15,29 +15,25 @@ const DEPS: string[] = [
   "google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2",
 ];
 
-const moveToMarkov = async () => {
-  const outDir = Deno.cwd() + "/out";
-
-  const markovDir = Deno.cwd() + "/../markov-generator/src/protobuf";
-
-  const exists = await Deno.stat(markovDir)
+const moveDir = async (src: string, dst: string) => {
+  const exists = await Deno.stat(dst)
     .then(() => true)
     .catch(() => false);
 
-  if (exists) await Deno.remove(markovDir, { recursive: true });
+  if (exists) await Deno.remove(dst, { recursive: true });
 
-  await Deno.mkdir(markovDir, { recursive: true });
+  await Deno.mkdir(dst, { recursive: true });
 
-  const files = Deno.readDirSync(outDir);
+  const files = Deno.readDirSync(dst);
 
   for (const file of files) {
-    const filePath = outDir + "/" + file.name;
-    const newFilePath = markovDir + "/" + file.name;
+    const filePath = src + "/" + file.name;
+    const newFilePath = dst + "/" + file.name;
 
     await Deno.rename(filePath, newFilePath);
   }
 
-  await Deno.remove(outDir);
+  await Deno.remove(src);
 };
 
 (async () => {
@@ -60,7 +56,10 @@ const moveToMarkov = async () => {
 
   console.log("Moving files to markov-generator");
 
-  await moveToMarkov();
+  const outDir = Deno.cwd() + "/out";
+  const markovDir = Deno.cwd() + "/../markov-generator/src/protobuf";
+
+  await moveDir(outDir, markovDir);
 
   console.log("Done!");
 })();

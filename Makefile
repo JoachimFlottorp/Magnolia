@@ -18,10 +18,7 @@ docs:
 proto:
 	make -C protobuf generate
 
-docker:
-	docker build -f docker/Dockerfile.shared -t jf/magnolia.deps .
-
-compose: docker
+compose:
 	docker compose build
 	docker compose up
 
