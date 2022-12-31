@@ -43,6 +43,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+      target: chat_bot
     container_name: "magnolia-chat-bot"
     networks:
       - "magnolia"

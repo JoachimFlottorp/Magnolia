@@ -50,7 +50,7 @@ RUN cd cmd/server && go build -ldflags '-extldflags "-static"' -o ./out ./main.g
 
 FROM alpine:3.16 as server
 COPY --from=server_deps /app/cmd/server/out /app/server
-ENTRYPOINT ["/app/server"]
+ENTRYPOINT ["/app/server", "-config", "/app/config.toml"]
 
 FROM golang_deps_base as twitch_reader_deps
 COPY cmd/twitch-reader/main.go /app/cmd/twitch-reader/main.go
@@ -58,7 +58,7 @@ RUN cd cmd/twitch-reader && go build -ldflags '-extldflags "-static"' -o ./out .
 
 FROM alpine:3.16 as twitch_reader
 COPY --from=twitch_reader_deps /app/cmd/twitch-reader/out /app/twitch-reader
-ENTRYPOINT ["/app/twitch-reader"]
+ENTRYPOINT ["/app/twitch-reader", "-config", "/app/config.toml"]
 
 FROM golang_deps_base as chat_bot_deps
 COPY cmd/chat-bot/main.go /app/cmd/chat-bot/main.go
@@ -66,9 +66,9 @@ RUN cd cmd/chat-bot && go build -ldflags '-extldflags "-static"' -o ./out ./main
 
 FROM alpine:3.16 as chat_bot
 COPY --from=chat_bot_deps /app/cmd/chat-bot/out /app/chat-bot
-ENTRYPOINT ["/app/chat-bot"]
+ENTRYPOINT ["/app/chat-bot", "-config", "/app/config.toml"]
 
 FROM deno_deps_base as markov_generator
 COPY markov-generator/src /app/src
 COPY --from=proto /src/markov-generator/src/protobuf /app/src/protobuf
-ENTRYPOINT [ "deno", "run", "--allow-read", "--allow-net", "src/index.ts", "/app/config.toml" ]
+ENTRYPOINT [ "deno", "run", "--allow-read", "--allow-net", "/app/src/index.ts", "/app/config.toml" ]
