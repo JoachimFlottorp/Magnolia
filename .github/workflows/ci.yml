@@ -30,19 +30,16 @@ jobs:
         with:
           deno-version: v1.29.1
 
-      - name: Install pbkit
+      - name: Download pbkit
         uses: wei/curl@master
         with:
           args: -LsS https://github.com/pbkit/pbkit/releases/download/v${{ env.PBKIT_VERSION }}/pbkit-x86_64-unknown-linux-gnu.tar -o pbkit.tar
       
-      - name: Unzip pbkit
-        uses: a7ul/tar-action@v1.1.0
-        id: extract
-        with:
-          command: x
-          files: pbkit.tar
-
-      - run: sudo mv pbkit /usr/local/bin
+      - name: Install pbkit
+        run: |
+          tar -xvf pbkit.tar
+          chmod +x pbkit
+          mv pbkit /usr/local/bin
 
       - name: Get Dependencies
         run: |
